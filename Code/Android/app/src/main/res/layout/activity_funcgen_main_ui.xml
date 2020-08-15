@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.manufacture.iot_function_generator.FuncgenMainUI">
+
+    <TextView
+        android:id="@+id/message4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/channel_b"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/amplitude_barb"
+        app:layout_constraintEnd_toStartOf="@+id/channel_b_type"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/freq_bara" />
+
+    <TextView
+        android:id="@+id/amplitude_a2"
+        android:layout_width="69dp"
+        android:layout_height="37dp"
+        android:text="@string/amplitude"
+        app:layout_constraintBottom_toTopOf="@+id/textView3"
+        app:layout_constraintEnd_toStartOf="@+id/amplitude_bara"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/message2" />
+
+    <Button
+        android:id="@+id/channel_a_type"
+        android:layout_width="109dp"
+        android:layout_height="56dp"
+        android:background="#0a66a4"
+        android:text="@string/off"
+        android:textColor="#ffffff"
+        app:layout_constraintBottom_toTopOf="@+id/amplitude_bara"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/message2"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/channel_b_type"
+        android:layout_width="109dp"
+        android:layout_height="56dp"
+        android:background="#0a66a4"
+        android:text="@string/off"
+        android:textColor="#ffffff"
+        app:layout_constraintBottom_toTopOf="@+id/amplitude_barb"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/message4"
+        app:layout_constraintTop_toBottomOf="@+id/freq_bara" />
+
+    <Button
+        android:id="@+id/get_info"
+        android:layout_width="108dp"
+        android:layout_height="55dp"
+        android:layout_marginTop="644dp"
+        android:background="#0a66a4"
+        android:text="@string/get_info"
+        android:textColor="#ffffff"
+        app:layout_constraintEnd_toStartOf="@+id/boot_option"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/boot_option"
+        android:layout_width="101dp"
+        android:layout_height="57dp"
+        android:layout_marginTop="644dp"
+        android:background="#0a66a4"
+        android:text="@string/boot_option"
+        android:textColor="#ffffff"
+        app:layout_constraintEnd_toStartOf="@+id/end_communication"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/get_info"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/end_communication"
+        android:layout_width="104dp"
+        android:layout_height="54dp"
+        android:layout_marginTop="645dp"
+        android:background="#0a66a4"
+        android:text="@string/exit_to_main_menu"
+        android:textColor="#ffffff"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/boot_option"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/textView10"
+        android:layout_width="75dp"
+        android:layout_height="35dp"
+        android:text="@string/frequency"
+        app:layout_constraintBottom_toTopOf="@+id/textView8"
+        app:layout_constraintEnd_toStartOf="@+id/freq_barb"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView5" />
+
+    <TextView
+        android:id="@+id/textView9"
+        android:layout_width="80dp"
+        android:layout_height="36dp"
+        android:text="@string/contrast"
+        app:layout_constraintBottom_toTopOf="@+id/get_info"
+        app:layout_constraintEnd_toStartOf="@+id/lcd_contrast"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView8" />
+
+    <SeekBar
+        android:id="@+id/lcd_brightness"
+        android:layout_width="265dp"
+        android:layout_height="35dp"
+        android:background="#FFFF"
+        android:max="100"
+        android:progress="100"
+        app:layout_constraintBottom_toTopOf="@+id/lcd_contrast"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textView8"
+        app:layout_constraintTop_toBottomOf="@+id/message3" />
+
+    <SeekBar
+        android:id="@+id/amplitude_barb"
+        android:layout_width="265dp"
+        android:layout_height="35dp"
+        android:background="#FFFF"
+        app:layout_constraintBottom_toTopOf="@+id/bias_barb"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textView4"
+        app:layout_constraintTop_toBottomOf="@+id/channel_b_type" />
+
+
+    <SeekBar
+        android:id="@+id/bias_bara"
+        android:layout_width="265dp"
+        android:layout_height="38dp"
+        android:background="#FFFF"
+        android:max="660"
+        android:progress="330"
+        app:layout_constraintBottom_toTopOf="@+id/freq_bara"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textView3"
+        app:layout_constraintTop_toBottomOf="@+id/amplitude_bara" />
+
+    <SeekBar
+        android:id="@+id/amplitude_bara"
+        android:layout_width="265dp"
+        android:layout_height="39dp"
+        android:background="#FFFF"
+        android:max="100"
+        android:progress="0"
+        app:layout_constraintBottom_toTopOf="@+id/bias_bara"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/amplitude_a2"
+        app:layout_constraintTop_toBottomOf="@+id/channel_a_type" />
+
+    <SeekBar
+        android:id="@+id/lcd_contrast"
+        android:layout_width="265dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="568dp"
+        android:background="#FFFF"
+        android:max="100"
+        android:progress="100"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textView9"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <SeekBar
+        android:id="@+id/bias_barb"
+        android:layout_width="265dp"
+        android:layout_height="35dp"
+        android:background="#FFFF"
+        android:max="660"
+        android:progress="330"
+        app:layout_constraintBottom_toTopOf="@+id/freq_barb"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textView5"
+        app:layout_constraintTop_toBottomOf="@+id/amplitude_barb" />
+
+    <TextView
+        android:id="@+id/message3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/lcd"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/lcd_brightness"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/freq_barb" />
+
+    <TextView
+        android:id="@+id/freq_bara"
+        android:layout_width="265dp"
+        android:layout_height="34dp"
+        android:background="#FFFF"
+        android:ems="10"
+        android:inputType="number"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/channel_b_type"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textView6"
+        app:layout_constraintTop_toBottomOf="@+id/bias_bara"
+        tools:ignore="TextViewEdits" />
+
+
+    <TextView
+        android:id="@+id/message2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/channel_a"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/amplitude_bara"
+        app:layout_constraintEnd_toStartOf="@+id/channel_a_type"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="69dp"
+        android:layout_height="33dp"
+        android:text="@string/bias"
+        app:layout_constraintBottom_toTopOf="@+id/textView6"
+        app:layout_constraintEnd_toStartOf="@+id/bias_bara"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/amplitude_a2" />
+
+    <TextView
+        android:id="@+id/textView8"
+        android:layout_width="80dp"
+        android:layout_height="36dp"
+        android:text="@string/brightness"
+        app:layout_constraintBottom_toTopOf="@+id/textView9"
+        app:layout_constraintEnd_toStartOf="@+id/lcd_brightness"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView10" />
+
+    <TextView
+        android:id="@+id/textView6"
+        android:layout_width="68dp"
+        android:layout_height="35dp"
+        android:text="@string/frequency"
+        app:layout_constraintBottom_toTopOf="@+id/message4"
+        app:layout_constraintEnd_toStartOf="@+id/freq_bara"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView3" />
+
+    <TextView
+        android:id="@+id/textView5"
+        android:layout_width="75dp"
+        android:layout_height="35dp"
+        android:text="@string/bias"
+        app:layout_constraintBottom_toTopOf="@+id/textView10"
+        app:layout_constraintEnd_toStartOf="@+id/bias_barb"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView4" />
+
+    <TextView
+        android:id="@+id/textView4"
+        android:layout_width="75dp"
+        android:layout_height="36dp"
+        android:text="@string/amplitude"
+        android:textColor="#6c9dff"
+        app:layout_constraintBottom_toTopOf="@+id/textView5"
+        app:layout_constraintEnd_toStartOf="@+id/amplitude_barb"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/message4" />
+
+
+    <TextView
+        android:id="@+id/freq_barb"
+        android:layout_width="267dp"
+        android:layout_height="36dp"
+        android:background="#FFFF"
+        android:ems="10"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/message3"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textView10"
+        app:layout_constraintTop_toBottomOf="@+id/bias_barb" />
+
+</android.support.constraint.ConstraintLayout>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/relativeLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0a0604"
+    android:orientation="vertical"
+    android:transitionGroup="true"
+    tools:context="com.manufacture.iot_function_generator.MainMenu">
+
+    <ImageView
+        android:id="@+id/TopX"
+        android:layout_width="wrap_content"
+        android:layout_height="178dp"
+        android:layout_gravity="center"
+        android:src="@drawable/top"
+        app:layout_constraintBottom_toTopOf="@+id/button_direct_connection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/button_exit"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:background="#0a66a4"
+        android:textColor="#ffffff"
+        android:padding="10dp"
+        android:text="@string/exit_from_app"
+
+        app:layout_constraintBottom_toTopOf="@+id/dialog_imageview"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/button_recovery"
+        app:layout_constraintTop_toBottomOf="@+id/button_wifi_pairing" />
+
+    <!--android:background="#0a66a4"-->
+
+    <Button
+        android:id="@+id/button_direct_connection"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:background="#0b66a4"
+        android:padding="10dp"
+        android:text="@string/initiate_direct_connection"
+        android:textColor="#ffffff"
+        app:layout_constraintBottom_toTopOf="@+id/button_recovery"
+        app:layout_constraintEnd_toStartOf="@+id/button_wifi_pairing"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/TopX" />
+
+
+    <Button
+        android:id="@+id/button_recovery"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:background="#0a66a4"
+        android:padding="10dp"
+        android:text="@string/wi_fi_network_pairing_wizard"
+        android:textColor="#ffffff"
+        app:layout_constraintBottom_toTopOf="@+id/dialog_imageview"
+        app:layout_constraintEnd_toStartOf="@+id/button_exit"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_direct_connection" />
+
+
+    <Button
+        android:id="@+id/button_wifi_pairing"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:background="#0a66a4"
+        android:padding="10dp"
+        android:text="@string/initiate_wlan_network_connection"
+        android:textColor="#ffffff"
+        app:layout_constraintBottom_toTopOf="@+id/button_exit"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/button_direct_connection"
+        app:layout_constraintTop_toBottomOf="@+id/TopX" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+
+    <ImageView
+        android:id="@+id/dialog_imageview"
+        android:layout_width="wrap_content"
+        android:layout_height="178dp"
+        android:layout_gravity="center"
+        android:src="@drawable/kl"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_exit" />
+
+
+</android.support.constraint.ConstraintLayout>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#000003</color>
+    <color name="colorText">#6c9dff</color>
+    <color name="colorBackground">#000003</color>
+    <color name="colorPrimaryDark">#6c9dff</color>
+    <color name="colorAccent">#6c9dff</color>
+    <color name="colorRED">#ff6c6c</color>
+    <color name="actionbar_opacity">#33ba4747</color>
+    <color name="primary">#6c9dff</color>
+    <color name="primary_dark">#303F9F</color>
+    <color name="primary_light">#C5CAE9</color>
+    <color name="accent">#6c9dff</color>
+    <color name="primary_text">#a5aefd</color>
+    <color name="secondary_text">#8183c6</color>
+    <color name="icons">#d2d2d2</color>
+    <color name="divider">#B6B6B6</color>
+    <color name="colorx">#001313</color>
+    <color name="buttonColor">#0a66a4</color>
+
+</resources>
