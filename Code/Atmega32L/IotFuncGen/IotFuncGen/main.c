@@ -12,47 +12,46 @@
 #include "Headers\LCD.h"
 #include "Headers\WifiParams.h"
 
-volatile bool isr_executed = false;
-#define MAX_STRING_BUFFER 20
+//volatile bool isr_executed = false;
 
-ISR(BADISR_vect) { sei(); }
+//ISR(BADISR_vect) { sei(); }
 	
-ISR(TIMER1_COMPA_vect) {
-	DISABLE_TIMER();
-	TCNT1 = 0;
-	isr_executed = true;
-}
+//ISR(TIMER1_COMPA_vect) {
+	//DISABLE_TIMER();
+	//TCNT1 = 0;
+	//isr_executed = true;
+//}
 
-void update_device_status() {
-	if (isr_executed) {
-		volatile bool prev_ac_status = status.ac_power_status;
-		update_ac_power_status();
-		update_battery_status();
-		if (status.ac_power_status && !prev_ac_status) {
-			beep();
-			clear_LCD();
-			print_LCD_line("AC connected!       ", LCD_LINE_2);
-			_delay_ms(1000);
-			update_complete_UI();
-		}
-		else if (!status.ac_power_status && prev_ac_status) {
-			beep();
-			clear_LCD();
-			print_LCD_line("AC disconnected!    ", LCD_LINE_2);
-			_delay_ms(1000);
-			update_complete_UI();
-			//ENABLE_TIMER();
-		}
-		if (status.battery_voltage <= 50) {
-			clear_LCD();
-			print_LCD_line("Battery low-energy! ", LCD_LINE_2);
-			_delay_ms(1000);
-			shutdown_sequence(false);
-		}
-		if (poll_switch()) shutdown_sequence(false);
-		isr_executed = false;
-		ENABLE_TIMER();
-	}
+void update_device_status() { // TODO: Future use of timer interrupt for AC / Battery settings
+// 	if (isr_executed) {
+// 		volatile bool prev_ac_status = status.ac_power_status;
+// 		update_ac_power_status();
+// 		update_battery_status();
+// 		if (status.ac_power_status && !prev_ac_status) {
+// 			beep();
+// 			clear_LCD();
+// 			print_LCD_line("AC connected!       ", LCD_LINE_2);
+// 			_delay_ms(1000);
+// 			update_complete_UI();
+// 		}
+// 		else if (!status.ac_power_status && prev_ac_status) {
+// 			beep();
+// 			clear_LCD();
+// 			print_LCD_line("AC disconnected!    ", LCD_LINE_2);
+// 			_delay_ms(1000);
+// 			update_complete_UI();
+// 			//ENABLE_TIMER();
+// 		}
+// 		if (status.battery_voltage <= 50) {
+// 			clear_LCD();
+// 			print_LCD_line("Battery low-energy! ", LCD_LINE_2);
+// 			_delay_ms(1000);
+// 			shutdown_sequence(false);
+// 		}
+// 		if (poll_switch()) shutdown_sequence(false);
+// 		isr_executed = false;
+// //		ENABLE_TIMER();
+// 	}
 }
 
 
@@ -120,7 +119,7 @@ void shutdown_sequence(bool is_erase_requested) {
 		print_LCD_char(cntx + '0',LCD_LINE_3, 3);
 		_delay_ms(1000);
 	}
-	send_command_UART("SHDN\r\n");
+	//send_command_UART("SHDN\r\n");
 	if (is_erase_requested) erase_EEPROM_1K();
 	play_melody(false);
 	DISABLE_DEVICE();
@@ -131,7 +130,7 @@ void Init_Timer() {
 	TCNT1 = 0;
 	TCCR1B |= (1 << WGM12);
 	OCR1A = 1000;
-	ENABLE_TIMER();
+	//ENABLE_TIMER();
 }
 
 void Init_Ports() {
@@ -160,7 +159,7 @@ void Init_Device() {
 	Init_UART();
 	Init_ADC();
 	clear_all_values();
-	status.socket_active = false;
+	STATUS.socket_active = false;
 }
 
 void Init_ADC() {
@@ -304,8 +303,202 @@ void erase_EEPROM_1K() {
 	for (uint16_t ptr = 0; ptr < EEPROM_ADRESS_SPAN + 1; ptr++) eeprom_write_byte((uint8_t *)ptr, 0);
 }
 
-void wifi_lan_pairing() {
+char * create_wifi_command() {
 	int sprintf_store = 0;
+	static char command[MAX_COMMAND_LENGTH];
+	memset(command, 0, MAX_COMMAND_LENGTH);
+	memset(WIFI.SSID, 0, MAX_WIFI_SSID_LENGTH);
+	memset(WIFI.PASS, 0, MAX_WIFI_PASS_LENGTH);
+	WIFI.encryption = 0;
+	eeprom_read_block(WIFI.SSID, (uint8_t *)WIFI_SSID_ADDRESS, MAX_WIFI_SSID_LENGTH);
+	eeprom_read_block(WIFI.PASS, (uint8_t *)WIFI_PASS_ADDRESS, MAX_WIFI_PASS_LENGTH);
+	WIFI.encryption = eeprom_read_byte(( uint8_t *)WIFI_ENCRYPTION_ADDRESS);
+	sprintf_store = sprintf(command, "AT+CWJAP=\"%s\",\"%s\"\r\n",WIFI.SSID,WIFI.PASS);
+	return command;
+}
+
+void save_wifi_credentials() {
+	eeprom_write_block(WIFI.SSID, (uint8_t *)WIFI_SSID_ADDRESS, MAX_WIFI_SSID_LENGTH);
+	eeprom_write_block(WIFI.PASS, (uint8_t *)WIFI_PASS_ADDRESS, MAX_WIFI_PASS_LENGTH);
+	eeprom_write_byte(( uint8_t *)WIFI_ENCRYPTION_ADDRESS, WIFI.encryption);
+}
+
+void retrieve_wifi_credentials() {
+	memset(WIFI.SSID, 0, MAX_WIFI_SSID_LENGTH);
+	memset(WIFI.PASS, 0, MAX_WIFI_PASS_LENGTH);
+	volatile uint8_t end_of_ssid_ptr,start_of_pass_ptr,end_of_pass_ptr = 0;
+	for (uint8_t ptr = START_OF_SSID_PTR; ptr < MAX_WIFI_SSID_LENGTH + START_OF_SSID_PTR; ptr++) {
+		if (UART.rx_buffer[ptr] == ',' && UART.rx_buffer[ptr + 1] == 'P') { 
+			end_of_ssid_ptr = ptr - 1;
+			start_of_pass_ptr = ptr + 2;
+			break;
+		}
+	}
+	for (uint8_t ptr = start_of_pass_ptr; ptr < start_of_pass_ptr + MAX_WIFI_PASS_LENGTH; ptr++) {
+		if (UART.rx_buffer[ptr] == ',' && UART.rx_buffer[ptr + 1] == 'E') {
+			end_of_pass_ptr = ptr - 1;
+			break;
+		}
+	}
+	memcpy(WIFI.SSID, UART.rx_buffer + START_OF_SSID_PTR, end_of_ssid_ptr - START_OF_SSID_PTR + 1);
+	memcpy(WIFI.PASS, UART.rx_buffer + start_of_pass_ptr, end_of_pass_ptr - start_of_pass_ptr + 1);
+	WIFI.encryption = UART.rx_buffer[end_of_pass_ptr + 3];
+}
+
+void pack_mac_string() {
+	memcpy(WIFI.device_MAC, "MAC=", 4);
+	memcpy(WIFI.device_MAC + 4, UART.rx_buffer + 12, 17);
+	memcpy(WIFI.device_MAC + 21, "\r\n", 2);
+}
+
+void halt_system() {
+	uint8_t pressed_button_seconds = 0;
+	clear_LCD();
+	print_LCD_line("Communication error!", LCD_LINE_1);
+	print_LCD_line("Press the button -->", LCD_LINE_2);
+	print_LCD_line("Long press: Shutdown", LCD_LINE_3);
+	print_LCD_line("Short press: Reboot ", LCD_LINE_4);
+	while(true) {
+		if (poll_switch()) {
+			pressed_button_seconds++;
+			_delay_ms(1000);
+			if (pressed_button_seconds > 3) // Long press
+				shutdown_sequence(true);
+		}
+		else {
+			send_command_UART("AT+GSLP\r\n"); // Perform reset
+			_delay_ms(500);
+			RESET_DEVICE();
+			while(true);
+		}
+	}
+}
+
+void direct_pairing() {
+	uint8_t retries = 0;
+	bool break_from_pairing = false;
+	enum DIRECT_PAIRING_STATES direct_pairing_state = SHOW_DIRECT_MESSAGE;
+	beep();
+	while(!break_from_pairing) {
+		
+		if (poll_switch()) shutdown_sequence(true);
+		
+		if (retries < MAXIMUM_COMMAND_RETRIES) {
+			switch(direct_pairing_state)
+			{
+				case SHOW_DIRECT_MESSAGE:
+					clear_LCD();
+					print_LCD_line(ESP32_STATUS_MSG, LCD_LINE_1);
+					direct_pairing_state = ECHO_OFF_COMMAND;
+					UART.wait_for_message = WAIT_FOR_OK;
+					break;
+			
+				case ECHO_OFF_COMMAND: // create wifi AP, create socket.
+					if (UART.message_received) {
+							direct_pairing_state = SET_AP_MODE;
+							clear_uart_rx_message();
+							retries = 0;
+							UART.wait_for_message = WAIT_FOR_OK;
+							print_LCD_line(ESP32_STATUS_MSG_OK, LCD_LINE_1);				
+							print_LCD_line(REQUEST_NETWORK_MSG, LCD_LINE_2);
+							break;
+						}
+					//else clear_uart_rx_message();
+					retries++;
+					send_command_UART("ATE0\r\n");
+					_delay_ms(400);
+					break;
+			
+				case SET_AP_MODE: // create wifi AP, create socket.
+					if (UART.message_received) {
+							direct_pairing_state = OPEN_DIRECT_AP;
+							clear_uart_rx_message();
+							retries = 0;
+							UART.wait_for_message = WAIT_FOR_OK;
+							break;
+						}
+					//else clear_uart_rx_message();
+					retries++;
+					send_command_UART("AT+CWMODE=3\r\n");
+					_delay_ms(400);
+					break;
+							
+				case OPEN_DIRECT_AP:
+					if (UART.message_received) {
+						direct_pairing_state = SET_MUX_COMMAND;
+						clear_uart_rx_message();
+						retries = 0;
+						UART.wait_for_message = WAIT_FOR_OK;
+						print_LCD_line(REQUEST_NETWORK_MSG_OK, LCD_LINE_2);
+						print_LCD_line(CREATING_SERVER_MSG, LCD_LINE_3);
+						break;
+						}
+					
+					retries++;
+					send_command_UART("AT+CWSAP=\"IOT_FUNCGEN\",\"0\",1,0\r\n");
+					_delay_ms(800);
+					break;
+				
+				case SET_MUX_COMMAND:
+					if (UART.message_received) {
+							direct_pairing_state = OPEN_SOCKET_SERVER;
+							clear_uart_rx_message();
+							retries = 0;
+							UART.wait_for_message = WAIT_FOR_OK;
+							break;
+					}
+					retries++;
+					send_command_UART("AT+CIPMUX=1\r\n");
+					_delay_ms(400);
+					break;	
+					
+				case OPEN_SOCKET_SERVER:
+					if (UART.message_received) {
+							direct_pairing_state = WAIT_FOR_DEVICE;
+							clear_uart_rx_message();
+							retries = 0;
+							print_LCD_line(CREATING_SERVER_MSG_OK, LCD_LINE_3);
+							print_LCD_line(WAIT_FOR_DEVICE_MSG, LCD_LINE_4);
+							UART.wait_for_message = WAIT_FOR_CONNECT;
+							break;
+					}
+					retries++;
+					send_command_UART("AT+CIPSERVER=1,1726\r\n");
+					_delay_ms(800);
+					break;
+				
+				
+				case WAIT_FOR_DEVICE:
+					if (UART.message_received) {
+							direct_pairing_state = MESSAGE_HANDLING_STATE;
+							UART.wait_for_message = WAIT_FOR_DATA;
+							beep(); _delay_ms(50); beep(); _delay_ms(50); beep();
+							clear_uart_rx_message();
+							clear_LCD();
+							retries = 0;
+							print_LCD_line(DEVICE_CONNECTED_MSG, LCD_LINE_2);
+							_delay_ms(2000);
+							break;
+					}
+					break;				
+				
+				case MESSAGE_HANDLING_STATE:
+					eeprom_write_byte((uint8_t *)STORED_CONNECTION_STATE_ADDRESS, WIFI_DIRECT_CONNECTION);
+					update_complete_UI();
+					socket_message_handler();	
+					break;		
+			}	
+		}
+		else {
+			halt_system();
+			retries = 0;
+			direct_pairing_state = SHOW_DIRECT_MESSAGE;
+			_delay_ms(1000);
+		}
+	}
+}
+
+void wifi_lan_pairing() {
 	uint8_t retries = 0;
 	bool break_from_pairing = false;
 	enum LAN_PAIRING_STATES pairing_state = SHOW_LAN_MESSAGE;
@@ -317,112 +510,185 @@ void wifi_lan_pairing() {
 			{
 				case SHOW_LAN_MESSAGE:
 					clear_LCD();
-					print_LCD_line("Network Device....  ", LCD_LINE_1);
+					print_LCD_line(ESP32_STATUS_MSG, LCD_LINE_1);
 					pairing_state = ECHO_OFF_COMMAND;
+					UART.wait_for_message = WAIT_FOR_OK;
 					break;
-			
+				
 				case ECHO_OFF: // create wifi AP, create socket.
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K'))  {
-							pairing_state = OPEN_DIRECT_AP;
+				if (UART.message_received) {
+						pairing_state = OPEN_DIRECT_AP;
+						clear_uart_rx_message();
+						retries = 0;
+						print_LCD_line(ESP32_STATUS_MSG_OK, LCD_LINE_1);
+						print_LCD_line(REQUEST_NETWORK_MSG, LCD_LINE_2);
+						UART.wait_for_message = WAIT_FOR_OK;
+						break;
+				}
+				send_command_UART("ATE0\r\n");
+				retries++;
+				_delay_ms(400);
+				if (poll_switch()) shutdown_sequence(true);
+				break;
+			
+				case SET_AP_MODE: // create wifi AP, create socket.
+					if (UART.message_received) {
+							pairing_state = OPEN_LOCAL_AP;
 							clear_uart_rx_message();
 							retries = 0;
-							print_LCD_line("Network Device....OK", LCD_LINE_1);
-							print_LCD_line("Wi-Fi Network.....  ", LCD_LINE_2);
+							UART.wait_for_message = WAIT_FOR_OK;
 							break;
-						}
-						else clear_uart_rx_message();
 					}
-					send_command_UART("ATE0\r\n");
 					retries++;
-					_delay_ms(3000);
+					send_command_UART("AT+CWMODE=1\r\n");
+					_delay_ms(400);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
-			
+							
 				case OPEN_LOCAL_AP:
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K')) {
-							pairing_state = OPEN_SOCKET_SERVER;
-							clear_uart_rx_message();
-							retries = 0;
-							print_LCD_line("Wi-Fi Network.....OK", LCD_LINE_2);
-							print_LCD_line("Server Status.....  ", LCD_LINE_3);
-							break;
-						}
-						else clear_uart_rx_message();
+					if (UART.message_received) {
+						pairing_state = SET_MUX_COMMAND;
+						clear_uart_rx_message();
+						retries = 0;
+						print_LCD_line(REQUEST_NETWORK_MSG_OK, LCD_LINE_2);
+						print_LCD_line(CREATING_SERVER_MSG, LCD_LINE_3);
+						UART.wait_for_message = WAIT_FOR_OK;
+						break;
 					}
-					send_command_UART("DIRECT_AP\r\n");
+					send_command_UART("AT+CWSAP=\"IOT_FUNCGEN\",\"0\",1,0\r\n");
 					retries++;
-					_delay_ms(15000);
+					_delay_ms(800);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
-			
+				
+				case SET_MUX_COMMAND:
+					if (UART.message_received) {
+						pairing_state = OPEN_LOCAL_SOCKET;
+						UART.wait_for_message = WAIT_FOR_OK;
+						clear_uart_rx_message();
+						retries = 0;
+						break;
+					}
+					retries++;
+					send_command_UART("AT+CIPMUX=1\r\n");
+					_delay_ms(400);
+					if (poll_switch()) shutdown_sequence(true);
+					break;
+								
 				case OPEN_LOCAL_SOCKET:
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K')) {
-							pairing_state = WAIT_FOR_DEVICE;
-							clear_uart_rx_message();
-							retries = 0;
-							print_LCD_line("Server Status.....OK", LCD_LINE_3);
-							print_LCD_line("<Waiting For Device>", LCD_LINE_4);
-							break;
-						}
-						else clear_uart_rx_message();
+					if (UART.message_received) {
+						pairing_state = WAIT_FOR_DEVICE_CONNECT;
+						UART.wait_for_message = WAIT_FOR_CONNECT;
+						clear_uart_rx_message();
+						retries = 0;
+						print_LCD_line(CREATING_SERVER_MSG_OK, LCD_LINE_3);
+						print_LCD_line(WAIT_FOR_DEVICE_MSG, LCD_LINE_4);
+						break;
 					}
-					send_command_UART("WLAN_SOCKET\r\n");
+					send_command_UART("AT+CIPSERVER=1,1726\r\n");
 					retries++;
-					_delay_ms(3000);
+					_delay_ms(800);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
-			
-				case WAIT_FOR_CONNECT:
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'C' && (uart.rx_buffer[3] == 'O')) { // \r\nCONNECT\r\n
-							pairing_state = RETRIEVE_CREDENTIALS;
-							clear_uart_rx_message();
-							clear_LCD();
-							print_LCD_line(" <Device connected> ", LCD_LINE_2);
-							print_LCD_line("Waiting for data... ", LCD_LINE_3);
-							status.socket_active = true;
-							retries = 0;
-							_delay_ms(100);
-							break;
-						}
-					else clear_uart_rx_message();
+				
+				case WAIT_FOR_DEVICE_CONNECT:
+					if (UART.message_received) {
+						pairing_state = RETRIEVE_MAC;
+						UART.wait_for_message = WAIT_FOR_MAC;
+						clear_uart_rx_message();
+						clear_LCD();
+						print_LCD_line("Android device found", LCD_LINE_1);
+						print_LCD_line("FuncGen MAC Address:", LCD_LINE_2);
+						print_LCD_line("<   Retrieving...  >", LCD_LINE_3);
+						STATUS.socket_active = true;
+						retries = 0;
+						_delay_ms(1000);
+						break;
 					}
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 				
-				case RETRIEVE_CREDENTIALS: //\r\nWN=SVaica1,Pvaica666,E2\r\n
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'W' && (uart.rx_buffer[3] == 'N')) { // \r\nCONNECT\r\n
-							clear_LCD();
-							retrieve_wifi_credentials();
-							save_wifi_credentials();
-							memset(buffer_LCD1, 0, LCD_LINE_LENGTH);
-							memset(buffer_LCD2, 0, LCD_LINE_LENGTH);
-							sprintf_store = snprintf(buffer_LCD1, MAX_STRING_BUFFER, "SSID:%s", wifi.SSID);
-							sprintf_store = snprintf(buffer_LCD2, MAX_STRING_BUFFER, "PASS:%s", wifi.PASS);
-							print_LCD_line("Wi-Fi data received:", LCD_LINE_1);
-							retries = 0;
-							print_LCD_line(buffer_LCD1, LCD_LINE_2);
-							print_LCD_line(buffer_LCD2, LCD_LINE_3);
-							if (wifi.encryption != '4') print_LCD_line("Connection: Secured", LCD_LINE_4);
-							else  print_LCD_line("Connection: Open    ", LCD_LINE_4);
-							_delay_ms(2000);
+				case RETRIEVE_MAC:
+					if (UART.message_received) {
+						pack_mac_string();
+						print_LCD_line(WIFI.device_MAC, LCD_LINE_3);
+						_delay_ms(1000);
+						pairing_state = SEND_MAC;
+						UART.wait_for_message = WAIT_FOR_READY_TO_SEND;
+						clear_uart_rx_message();
+						retries = 0;
+					}
+					send_command_UART("AT+CIPSTAMAC?\r\n");
+					retries++;
+					_delay_ms(400);					
+					if (poll_switch()) shutdown_sequence(true);
+					break;
+				
+				case SEND_MAC:
+					while(true) {
+						if (poll_switch()) shutdown_sequence(true);
+						if (UART.message_received) {
 							clear_uart_rx_message();
-							start_wlan_communication();
+							retries = 0;
+							UART.wait_for_message = WAIT_FOR_CREDENTIALS;
 							break;
 						}
-						else clear_uart_rx_message();
+						else {
+							if (retries >= MAXIMUM_COMMAND_RETRIES) {
+								shutdown_sequence(true);
+							}
+							else {
+								send_command_UART("AT+CIPSEND=0,23\r\n");
+								retries++;
+								_delay_ms(500);
+							}
+						}
+					}
+					send_command_UART(WIFI.device_MAC); // MAC String transmission
+					while(true) {
+						if (poll_switch()) shutdown_sequence(true);
+						if (UART.message_received) {
+							pairing_state = RETRIEVE_CREDENTIALS;
+							retries = 0;
+							break;
+						}
+						else {
+							if (retries >= MAXIMUM_COMMAND_RETRIES) {
+								shutdown_sequence(true);
+							}
+							else {
+								retries++;
+								_delay_ms(500);
+							}
+						}
+					}
+					break;
+
+				case RETRIEVE_CREDENTIALS: //\r\nWN=SVaica1,Pvaica666,E2\r\n
+					if (UART.message_received) {
+						clear_LCD();
+						retrieve_wifi_credentials();
+						save_wifi_credentials();
+						memset(buffer_LCD1, 0, LCD_LINE_LENGTH);
+						memset(buffer_LCD2, 0, LCD_LINE_LENGTH);
+						snprintf(buffer_LCD1, MAX_STRING_BUFFER, "SSID:%s", WIFI.SSID);
+						snprintf(buffer_LCD2, MAX_STRING_BUFFER, "PASS:%s", WIFI.PASS);
+						print_LCD_line("Wi-Fi data received:", LCD_LINE_1);
+						retries = 0;
+						print_LCD_line(buffer_LCD1, LCD_LINE_2);
+						print_LCD_line(buffer_LCD2, LCD_LINE_3);
+						if (WIFI.encryption != '4') print_LCD_line("Connection: Secured", LCD_LINE_4);
+						else  print_LCD_line("Connection: Open    ", LCD_LINE_4);
+						_delay_ms(4000);
+						clear_uart_rx_message();
+						start_wlan_communication();
+						break;
 					}
 					if (poll_switch()) shutdown_sequence(true);
-						send_command_UART("GIVE WIFI\r\n");
-						_delay_ms(8000);
 			}
 		}
 		else {
-			send_command_UART("RESET\r\n");
+			halt_system();
 			retries = 0;
 			pairing_state = SHOW_LAN_MESSAGE;
 			_delay_ms(1000);
@@ -437,114 +703,80 @@ void start_wlan_communication() {
 	beep();
 	while(!break_from_pairing) {
 		if (retries < MAXIMUM_COMMAND_RETRIES) {
-			switch(communication_state) {
-			
+			switch(communication_state) {	
 				case INIT_MESSAGE:
-					clear_LCD();
-					print_LCD_line(" Starting Wi-Fi LAN ", LCD_LINE_2);
-					print_LCD_line("communication wizard", LCD_LINE_3);
-					retries = 0;
-					_delay_ms(2000);
-					clear_LCD();
-					print_LCD_line("Device response.....", LCD_LINE_1);
-					communication_state = ECHO_OFF;
-					break;
-			
+				clear_LCD();
+				print_LCD_line(START_WLAN_MSG, LCD_LINE_2);
+				print_LCD_line(START_COMM_MSG, LCD_LINE_3);
+				retries = 0;
+				_delay_ms(2000);
+				clear_LCD();
+				print_LCD_line(ESP32_STATUS_MSG, LCD_LINE_1);
+				communication_state = ECHO_OFF;
+				UART.wait_for_message = WAIT_FOR_OK;
+				break;
+				
 				case ECHO_OFF: // create wifi AP, create socket.
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K'))  {
-							communication_state = REQUEST_WIFI;
-							clear_uart_rx_message();
-							retries = 0;
-							print_LCD_line("Device response...OK", LCD_LINE_1);
-							print_LCD_line("Requesting Wi-Fi....", LCD_LINE_2);
-							break;
-						}
-						else clear_uart_rx_message();
+					if (UART.message_received) {
+						communication_state = REQUEST_WIFI;
+						clear_uart_rx_message();
+						retries = 0;
+						UART.wait_for_message = WAIT_FOR_GOT_IP;
+						print_LCD_line(ESP32_STATUS_MSG_OK, LCD_LINE_1);
+						print_LCD_line(REQUEST_NETWORK_MSG, LCD_LINE_2);
+						break;
 					}
 					send_command_UART("ATE0\r\n");
 					retries++;
-					_delay_ms(2000);
+					_delay_ms(400);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 
 				case REQUEST_WIFI: // create wifi AP, create socket.
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K'))  {
-							communication_state = REQUEST_DHCP;
-							clear_uart_rx_message();
-							print_LCD_line("Device response...OK", LCD_LINE_1);
-							print_LCD_line("Requesting Wi-Fi..OK", LCD_LINE_2);
-							print_LCD_line("Requesting DHCP.....", LCD_LINE_3);
-							retries = 0;
-							break;
-						}
-						else clear_uart_rx_message();
+					if (UART.message_received) {
+						communication_state = CREATE_SOCKET_SERVER_WLAN;
+						UART.wait_for_message = WAIT_FOR_OK;
+						clear_uart_rx_message();
+						print_LCD_line(REQUEST_NETWORK_MSG_OK, LCD_LINE_2);
+						print_LCD_line(CREATING_SERVER_MSG, LCD_LINE_3);
+						retries = 0;
+						break;
 					}
 					send_command_UART(create_wifi_command());
 					retries++;
-					_delay_ms(15000);
-					if (poll_switch()) shutdown_sequence(true);
-					break;
-				
-				case REQUEST_DHCP: // create wifi AP, create socket.
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K'))  {
-							communication_state = CREATE_SOCKET_SERVER_WLAN;
-							clear_uart_rx_message();
-							print_LCD_line("Device response...OK", LCD_LINE_1);
-							print_LCD_line("Requesting Wi-Fi..OK", LCD_LINE_2);
-							print_LCD_line("Requesting DHCP...OK", LCD_LINE_3);
-							retries = 0;
-							_delay_ms(2000);
-							print_LCD_line("Creating server.....", LCD_LINE_4);
-							break;
-						}
-						else clear_uart_rx_message();
-					}
-					send_command_UART("DHCP_REQ\r\n");
-					retries++;
-					_delay_ms(4000);
+					_delay_ms(5000);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 				
 				case CREATE_SOCKET_SERVER_WLAN: // create wifi AP, create socket.
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K'))  {
-							communication_state = WAIT_FOR_WLAN_DEVICE;
-							clear_uart_rx_message();
-							print_LCD_line("Device response...OK", LCD_LINE_1);
-							print_LCD_line("Requesting Wi-Fi..OK", LCD_LINE_2);
-							print_LCD_line("Requesting DHCP...OK", LCD_LINE_3);
-							print_LCD_line("Creating server...OK", LCD_LINE_4);
-							retries = 0;
-							_delay_ms(2000);
-							clear_LCD();
-							print_LCD_line("<Waiting for device>", LCD_LINE_2);
-							break;
-						}
-						else clear_uart_rx_message();
+					if (UART.message_received) {
+						communication_state = WAIT_FOR_WLAN_DEVICE;
+						UART.wait_for_message = WAIT_FOR_CONNECT;
+						clear_uart_rx_message();
+						print_LCD_line(CREATING_SERVER_MSG_OK, LCD_LINE_3);
+						print_LCD_line(WAIT_FOR_DEVICE_MSG, LCD_LINE_4);
+						retries = 0;
+						clear_LCD();
+						break;
 					}
-					send_command_UART("DIRECT_SOCKET\r\n");
+					send_command_UART("AT+CIPSERVER=1,1726\r\n");
 					retries++;
-					_delay_ms(4000);
+					_delay_ms(800);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 				
 				case WAIT_FOR_WLAN_DEVICE:
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'C' && (uart.rx_buffer[3] == 'O')) { // \r\nCONNECT\r\n
-							communication_state = DEVICE_CONNECTED;
-							clear_uart_rx_message();
-							retries = 0;
-							clear_LCD();
-							print_LCD_line(" <Device connected> ", LCD_LINE_2);
-							status.socket_active = true;
-							beep(); _delay_ms(50); beep();
-							_delay_ms(2000);
-							break;
-						}
-						else clear_uart_rx_message();
+					if (UART.message_received) {
+						communication_state = DEVICE_CONNECTED;
+						UART.wait_for_message = WAIT_FOR_DATA;
+						clear_uart_rx_message();
+						retries = 0;
+						clear_LCD();
+						print_LCD_line(DEVICE_CONNECTED_MSG, LCD_LINE_2);
+						STATUS.socket_active = true;
+						beep(); _delay_ms(50); beep();
+						_delay_ms(2000);
+						break;
 					}
 					if (poll_switch()) shutdown_sequence(true);
 					break;
@@ -555,11 +787,11 @@ void start_wlan_communication() {
 					update_complete_UI();
 					socket_message_handler();
 					break;
-			
+				
 			}
 		}
 		else {
-			send_command_UART("RESET\r\n");
+			halt_system();
 			retries = 0;
 			communication_state = INIT_MESSAGE;
 			_delay_ms(1000);
@@ -567,195 +799,50 @@ void start_wlan_communication() {
 	}
 }
 
-char * create_wifi_command() {
-	int sprintf_store = 0;
-	static char command[MAX_COMMAND_LENGTH];
-	memset(command, 0, MAX_COMMAND_LENGTH);
-	memset(wifi.SSID, 0, MAX_WIFI_SSID_LENGTH);
-	memset(wifi.PASS, 0, MAX_WIFI_PASS_LENGTH);
-	wifi.encryption = 0;
-	eeprom_read_block(wifi.SSID, (uint8_t *)WIFI_SSID_ADDRESS, MAX_WIFI_SSID_LENGTH);
-	eeprom_read_block(wifi.PASS, (uint8_t *)WIFI_PASS_ADDRESS, MAX_WIFI_PASS_LENGTH);
-	wifi.encryption = eeprom_read_byte(( uint8_t *)WIFI_ENCRYPTION_ADDRESS);
-	sprintf_store = sprintf(command, "WN=S%s,P%s,E%c\r\n",wifi.SSID,wifi.PASS,wifi.encryption);
-	return command;
-}
-
-void save_wifi_credentials() {
-	eeprom_write_block(wifi.SSID, (uint8_t *)WIFI_SSID_ADDRESS, MAX_WIFI_SSID_LENGTH);
-	eeprom_write_block(wifi.PASS, (uint8_t *)WIFI_PASS_ADDRESS, MAX_WIFI_PASS_LENGTH);
-	eeprom_write_byte(( uint8_t *)WIFI_ENCRYPTION_ADDRESS, wifi.encryption);
-}
-
-void retrieve_wifi_credentials() {
-	memset(wifi.SSID, 0, MAX_WIFI_SSID_LENGTH);
-	memset(wifi.PASS, 0, MAX_WIFI_PASS_LENGTH);
-	volatile uint8_t end_of_ssid_ptr,start_of_pass_ptr,end_of_pass_ptr = 0;
-	for (uint8_t ptr = START_OF_SSID_PTR; ptr < MAX_WIFI_SSID_LENGTH + START_OF_SSID_PTR; ptr++) {
-		if (uart.rx_buffer[ptr] == ',' && uart.rx_buffer[ptr + 1] == 'P') { 
-			end_of_ssid_ptr = ptr - 1;
-			start_of_pass_ptr = ptr + 2;
-			break;
-		}
-	}
-	for (uint8_t ptr = start_of_pass_ptr; ptr < start_of_pass_ptr + MAX_WIFI_PASS_LENGTH; ptr++) {
-		if (uart.rx_buffer[ptr] == ',' && uart.rx_buffer[ptr + 1] == 'E') {
-			end_of_pass_ptr = ptr - 1;
-			break;
-		}
-	}
-	memcpy(wifi.SSID, uart.rx_buffer + START_OF_SSID_PTR, end_of_ssid_ptr - START_OF_SSID_PTR + 1);
-	memcpy(wifi.PASS, uart.rx_buffer + start_of_pass_ptr, end_of_pass_ptr - start_of_pass_ptr + 1);
-	wifi.encryption = uart.rx_buffer[end_of_pass_ptr + 3];
-}
-
-void direct_pairing() {
-	uint8_t retries = 0;
-	bool break_from_pairing = false;
-	enum DIRECT_PAIRING_STATES direct_pairing_state = SHOW_DIRECT_MESSAGE;
-	beep();
-	while(!break_from_pairing) {
-		if (retries < MAXIMUM_COMMAND_RETRIES) {
-			switch(direct_pairing_state)
-			{
-				case SHOW_DIRECT_MESSAGE:
-					clear_LCD();
-					print_LCD_line("Network Device....  ", LCD_LINE_1);
-					direct_pairing_state = ECHO_OFF_COMMAND;
-					break;
-			
-				case ECHO_OFF_COMMAND: // create wifi AP, create socket.
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K'))  { 
-							direct_pairing_state = OPEN_DIRECT_AP;
-							clear_uart_rx_message();
-							retries = 0;
-							print_LCD_line("Network Device....OK", LCD_LINE_1);				
-							print_LCD_line("Wi-Fi Network.....  ", LCD_LINE_2);
-							break;
-						}
-						else clear_uart_rx_message();
-					}
-					retries++;
-					send_command_UART("ATE0\r\n");
-					_delay_ms(3000);
-					if (poll_switch()) shutdown_sequence(true);
-					break;
-				
-				case OPEN_DIRECT_AP:
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K')) {
-							direct_pairing_state = OPEN_SOCKET_SERVER;
-							clear_uart_rx_message();
-							retries = 0;
-							print_LCD_line("Wi-Fi Network.....OK", LCD_LINE_2);
-							print_LCD_line("Server Status.....  ", LCD_LINE_3);
-							break;
-						}
-						else clear_uart_rx_message();
-					}
-					retries++;
-					send_command_UART("DIRECT_AP\r\n");
-					_delay_ms(10000);
-					if (poll_switch()) shutdown_sequence(true);
-					break;
-				
-				case OPEN_SOCKET_SERVER:
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'O' && (uart.rx_buffer[3] == 'K')) {
-							direct_pairing_state = WAIT_FOR_DEVICE;
-							clear_uart_rx_message();
-							retries = 0;
-							print_LCD_line("Server Status.....OK", LCD_LINE_3);
-							print_LCD_line("<Waiting For Device>", LCD_LINE_4);
-							break;
-						}
-						else clear_uart_rx_message();
-					}
-					retries++;
-					send_command_UART("DIRECT_SOCKET\r\n");
-					_delay_ms(3000);
-					if (poll_switch()) shutdown_sequence(true);
-					break;	
-				
-				case WAIT_FOR_DEVICE:
-					if (uart.message_received) {
-						if ((uart.rx_buffer[2]) == 'C' && (uart.rx_buffer[3] == 'O')) { // \r\nCONNECT\r\n
-							direct_pairing_state = MESSAGE_HANDLING_STATE;
-							beep(); _delay_ms(50); beep();
-							clear_uart_rx_message();
-							clear_LCD();
-							retries = 0;
-							print_LCD_line(" <Device connected> ", LCD_LINE_2);
-							_delay_ms(2000);
-							break;
-						}
-						else clear_uart_rx_message();
-					}
-					if (poll_switch()) shutdown_sequence(true);
-					break;				
-				
-				case MESSAGE_HANDLING_STATE:
-					eeprom_write_byte((uint8_t *)STORED_CONNECTION_STATE_ADDRESS, WIFI_DIRECT_CONNECTION);
-					update_complete_UI();
-					socket_message_handler();	
-					break;		
-			}	
-		}
-		else {
-			send_command_UART("RESET\r\n");
-			retries = 0;
-			direct_pairing_state = SHOW_DIRECT_MESSAGE;
-			_delay_ms(1000);
-		}
-	}
-}
 
 void socket_message_handler() {
 	volatile enum MESSAGE_HANDLER_STATES msg_state = MESSAGE_HANDLER_IDLE;
 	bool output_confirm = false;
-	Init_Timer();
+	//Init_Timer();
 	while(!output_confirm) {
 		update_device_status();
 		switch(msg_state) {
 			case MESSAGE_HANDLER_IDLE:
-				if (uart.message_received) {
-					DISABLE_TIMER();
+				if (UART.message_received) {
+//					DISABLE_TIMER();
 					beep();
-					if ((uart.rx_buffer[2]) == 'G' && (uart.rx_buffer[3] == 'I')) msg_state = PROVIDE_DETAILS;
-					else if ((uart.rx_buffer[2]) == 'B' && (uart.rx_buffer[3] == 'O')) msg_state = BOOT_FROM_APP;
-					else if (uart.rx_buffer[2] == 'C' && uart.rx_buffer[3] == '=') msg_state = FUNCTION_HANDLER;
-					else if (uart.rx_buffer[2] == 'L' && uart.rx_buffer[3] == 'C') msg_state = LCD_PARAM_ADJUST;
-					else if (uart.rx_buffer[2] == 'R' && uart.rx_buffer[3] == 'E') msg_state = RESET_HANDLER;
+					if ((UART.rx_buffer[2]) == 'G' && (UART.rx_buffer[3] == 'I')) msg_state = PROVIDE_DETAILS;
+					else if ((UART.rx_buffer[2]) == 'B' && (UART.rx_buffer[3] == 'O')) msg_state = BOOT_FROM_APP;
+					else if (UART.rx_buffer[2] == 'C' && UART.rx_buffer[3] == '=') msg_state = FUNCTION_HANDLER;
+					else if (UART.rx_buffer[2] == 'L' && UART.rx_buffer[3] == 'C') msg_state = LCD_PARAM_ADJUST;
+					else if (UART.rx_buffer[2] == 'R' && UART.rx_buffer[3] == 'E') msg_state = RESET_HANDLER;
 					else clear_uart_rx_message();
 				}
 				break;
 				
 			case PROVIDE_DETAILS:
-				switch(uart.rx_buffer[7]) {
+				switch(UART.rx_buffer[7]) {
 					case 'B': send_command_UART(get_battery_status());  break;
 					case 'A':  send_command_UART(get_ac_power_status()); break;
 					default: break;
 				}
 				clear_uart_rx_message();
 				msg_state = MESSAGE_HANDLER_IDLE;
-				ENABLE_TIMER();
+//				ENABLE_TIMER();
 				break;
 
 			case FUNCTION_HANDLER:
 				set_parameter();
 				clear_uart_rx_message();
 				msg_state = MESSAGE_HANDLER_IDLE;
-				send_command_UART("OK\r\n");
-				ENABLE_TIMER();
+				//send_command_UART("OK\r\n");
+//				ENABLE_TIMER();
 				break;
 				
 			case RESET_HANDLER:
 				clear_LCD();
-				print_LCD_line("   Android device   ",LCD_LINE_1);
-				print_LCD_line(" was disconnected.  ", LCD_LINE_2);
-				print_LCD_line(" Performing reboot  ", LCD_LINE_3);
-				print_LCD_line("      in X sec      ", LCD_LINE_4);
+				print_LCD_line(SHUTDOWN_MSG, LCD_LINE_2);
+				print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 				for (uint8_t ptr = 5; ptr > 0; ptr--) {
 					print_LCD_char(ptr + '0',LCD_LINE_4, 9); // X position
 					_delay_ms(1000);
@@ -765,57 +852,55 @@ void socket_message_handler() {
 				break;
 					
 			case BOOT_FROM_APP: 
-				if (uart.rx_buffer[7] == 'D') { // Direct request.
+				if (UART.rx_buffer[7] == 'D') { // Direct request.
 					eeprom_write_byte((uint8_t *)STORED_CONNECTION_STATE_ADDRESS, 'D');
 					clear_LCD();
-					print_LCD_line("Performing boot from", LCD_LINE_1);
-					print_LCD_line("Direct communication", LCD_LINE_2);
-					print_LCD_line("Restarting in X sec ", LCD_LINE_3);
+					print_LCD_line(REBOOT_MSG, LCD_LINE_2);
+					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
-						print_LCD_char(ptr + '0',LCD_LINE_3, 14); // X position
+						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
 						_delay_ms(1000);
 					}	
 					RESET_DEVICE();
 				}
-				else if (uart.rx_buffer[7] == 'L') { // LAN request
+				else if (UART.rx_buffer[7] == 'L') { // LAN request
 					eeprom_write_byte((uint8_t *)STORED_CONNECTION_STATE_ADDRESS, 'L');
 					clear_LCD();
-					print_LCD_line("Performing boot from", LCD_LINE_1);
-					print_LCD_line("Wi-Fi LAN sequence  ", LCD_LINE_2);
-					print_LCD_line("Restarting in X sec ", LCD_LINE_3);
+					print_LCD_line(REBOOT_MSG, LCD_LINE_2);
+					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
-						print_LCD_char(ptr + '0',LCD_LINE_3, 14); // X position
+						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
 						_delay_ms(1000);
 					}
 					RESET_DEVICE();
 				}
-				else if (uart.rx_buffer[7] == 'S')  { // Shutdown
+				else if (UART.rx_buffer[7] == 'S')  { // Shutdown
 					clear_LCD();
-					print_LCD_line("Shutting device down", LCD_LINE_2);
-					print_LCD_line("    in X sec        ", LCD_LINE_3);
+					print_LCD_line(SHUTDOWN_MSG, LCD_LINE_2);
+					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
-						print_LCD_char(ptr + '0',LCD_LINE_3, 7); // X position
+						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
 						_delay_ms(1000);
 					}
 					play_melody(false);
 					DISABLE_DEVICE();
 				}
-				else if ((uart.rx_buffer[7] == 'R') && (uart.rx_buffer[10] == 'T'))  { // Shutdown
+				else if ((UART.rx_buffer[7] == 'R') && (UART.rx_buffer[10] == 'T'))  { // Shutdown
 					clear_LCD();
-					print_LCD_line("  Reset to factory  ", LCD_LINE_2);
-					print_LCD_line(" settings in X sec  ", LCD_LINE_3);
+					print_LCD_line("Reset to factory... ", LCD_LINE_2);
+					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
-						print_LCD_char(ptr + '0',LCD_LINE_3, 13); // X position
+						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
 						_delay_ms(1000);
 					}
 					play_melody(false);
 					erase_EEPROM_1K();
 					RESET_DEVICE();
 				}
-				else if ((uart.rx_buffer[7] == 'R') && (uart.rx_buffer[10] == 'E'))  { // Shutdown
+				else if ((UART.rx_buffer[7] == 'R') && (UART.rx_buffer[10] == 'E'))  { // Shutdown
 					clear_LCD();
-					print_LCD_line("  Performing reset  ", LCD_LINE_2);
-					print_LCD_line("      in X sec      ", LCD_LINE_3);
+					print_LCD_line(REBOOT_MSG, LCD_LINE_2);
+					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
 						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
 						_delay_ms(1000);
@@ -824,28 +909,28 @@ void socket_message_handler() {
 					RESET_DEVICE();
 				}	
 				else msg_state = MESSAGE_HANDLER_IDLE;			
-				send_command_UART("OK\r\n");	
-				ENABLE_TIMER();			
+//				send_command_UART("OK\r\n");	
+//				ENABLE_TIMER();			
 				break;
 				
 			case LCD_PARAM_ADJUST:
-				switch(uart.rx_buffer[6]) {
+				switch(UART.rx_buffer[6]) {
 					case 'B': set_LCD_brightness(update_sg_param_value(BRIGHTNESS));  break;
 					case 'C': set_LCD_contrast(update_sg_param_value(CONTRAST));  break;
 					default: break;
 				}
 				clear_uart_rx_message();
 				msg_state = MESSAGE_HANDLER_IDLE;
-				send_command_UART("OK\r\n");
-				ENABLE_TIMER();
+//				send_command_UART("OK\r\n");
+//				ENABLE_TIMER();
 				break;
 				
 			case VOLUME_ADJUST:
 				set_volume(update_sg_param_value(VOLUME));
 				clear_uart_rx_message();
 				msg_state = MESSAGE_HANDLER_IDLE;
-				send_command_UART("OK\r\n");
-				ENABLE_TIMER();
+//				send_command_UART("OK\r\n");
+//				ENABLE_TIMER();
 			break;
 				
 		}
@@ -859,14 +944,14 @@ void set_volume(uint8_t value) {
 
 uint8_t update_sg_param_value(uint8_t parameter) {
 	uint8_t val = 0;
-	if (uart.rx_buffer[7] == '\r') return 0;
-	else if (uart.rx_buffer[8] == '\r') val = (uart.rx_buffer[7] - '0');
-	else if (uart.rx_buffer[9] == '\r') val = (uart.rx_buffer[8] - '0') + ((uart.rx_buffer[7] - '0') * 10);
-	else if (uart.rx_buffer[10] == '\r') val = (uart.rx_buffer[9] - '0') + ((uart.rx_buffer[8] - '0') * 10) + ((uart.rx_buffer[7] - '0') * 100);
+	if (UART.rx_buffer[7] == '\r') return 0;
+	else if (UART.rx_buffer[8] == '\r') val = (UART.rx_buffer[7] - '0');
+	else if (UART.rx_buffer[9] == '\r') val = (UART.rx_buffer[8] - '0') + ((UART.rx_buffer[7] - '0') * 10);
+	else if (UART.rx_buffer[10] == '\r') val = (UART.rx_buffer[9] - '0') + ((UART.rx_buffer[8] - '0') * 10) + ((UART.rx_buffer[7] - '0') * 100);
 	else return 100; // wrong value
-	if (parameter == CONTRAST) sg.contrast = val;
-	else if (parameter == BRIGHTNESS) sg.brightness = val;
-	else if (parameter == VOLUME) sg.volume = val;
+	if (parameter == CONTRAST) LCD.contrast = val;
+	else if (parameter == BRIGHTNESS) LCD.brightness = val;
+	else if (parameter == VOLUME) LCD.volume = val;
 	return val;
 }
 
@@ -877,7 +962,7 @@ void update_battery_status() {
 	while(ADCSRA & (1 << ADSC));
 	ta = ADC * BATTERY_ADC_FACTOR_A;
 	tb = ta * BATTERY_ADC_FACTOR_B;
-	status.battery_voltage = get_li_ion_percentage(tb);
+	STATUS.battery_voltage = get_li_ion_percentage(tb);
 }
 
 void update_ac_power_status() {
@@ -889,15 +974,15 @@ void update_ac_power_status() {
 	ADCSRA |= (1 << ADSC);
 	while(ADCSRA & (1 << ADSC));
 	adcx = (adcx + ADC) / 2; // Double sum average
-	if (adcx < POWER_ADC_THRESHOLD) status.ac_power_status = false;
-	else status.ac_power_status = true;
+	if (adcx < POWER_ADC_THRESHOLD) STATUS.ac_power_status = false;
+	else STATUS.ac_power_status = true;
 }
 
 char * get_battery_status() {
 	int sprintf_store = 0;
 	static char command[BATTERY_CMD_LENGTH];
 	memset(command,0,BATTERY_CMD_LENGTH);
-	sprintf_store = snprintf(command,11, "VBAT=%d\r\n",status.battery_voltage);//status.battery_voltage);
+	sprintf_store = snprintf(command,11, "VBAT=%d\r\n",STATUS.battery_voltage);//status.battery_voltage);
 	return command;
 }
 
@@ -905,7 +990,7 @@ char * get_ac_power_status() {
 	int sprintf_store = 0;
 	static char command[POWER_CMD_LENGTH];
 	memset(command,0,POWER_CMD_LENGTH);
-	if (status.ac_power_status) sprintf_store = snprintf(command, 7, "AC=ON\r\n"); // TRUE - ON
+	if (STATUS.ac_power_status) sprintf_store = snprintf(command, 7, "AC=ON\r\n"); // TRUE - ON
 	else sprintf_store = snprintf(command, 9, "AC=OFF\r\n");
 	return command;
 }
@@ -977,11 +1062,11 @@ uint32_t retrieve_frequency_uint32(char channel_in) {
 	volatile uint32_t return_number = 0;
 	if (channel_in == PARAM_CH0) memset(UI.frequency_A, 0, 8);
 	else memset(UI.frequency_B, 0, 8);
-	for (mark_ptr = FG_DATA_START_NUM; mark_ptr < FG_DATA_LENGTH; mark_ptr++) if (uart.rx_buffer[mark_ptr + 1] == '\"') { end_of_freq_string = mark_ptr; break; }
+	for (mark_ptr = FG_DATA_START_NUM; mark_ptr < FG_DATA_LENGTH; mark_ptr++) if (UART.rx_buffer[mark_ptr + 1] == '\"') { end_of_freq_string = mark_ptr; break; }
 	for (mark_ptr = end_of_freq_string; mark_ptr >= FG_DATA_START_NUM; mark_ptr--) {
-		return_number += (uart.rx_buffer[mark_ptr] - 0x30) * pow(10, end_of_freq_string - mark_ptr);
-		if (channel_in == PARAM_CH0) UI.frequency_A[mark_ptr - FG_DATA_START_NUM] = uart.rx_buffer[mark_ptr];
-		else UI.frequency_B[mark_ptr - FG_DATA_START_NUM] = uart.rx_buffer[mark_ptr];
+		return_number += (UART.rx_buffer[mark_ptr] - 0x30) * pow(10, end_of_freq_string - mark_ptr);
+		if (channel_in == PARAM_CH0) UI.frequency_A[mark_ptr - FG_DATA_START_NUM] = UART.rx_buffer[mark_ptr];
+		else UI.frequency_B[mark_ptr - FG_DATA_START_NUM] = UART.rx_buffer[mark_ptr];
 	}
 	return return_number + 1;
 }
@@ -990,9 +1075,9 @@ uint16_t retrieve_amplitude_12_bit(char channel_in) { // MAX 700mV
 	int sprintf_store = 0;
 	volatile uint32_t num = 0;
 	char buffer[3];
-	buffer[0] = uart.rx_buffer[9];
-	buffer[1] = uart.rx_buffer[11];
-	buffer[2] = uart.rx_buffer[12];
+	buffer[0] = UART.rx_buffer[9];
+	buffer[1] = UART.rx_buffer[11];
+	buffer[2] = UART.rx_buffer[12];
 	num = atoi(buffer);
 	if (channel_in == PARAM_CH0) memset(UI.amplitude_A, 0, 8);
 	else memset(UI.amplitude_B, 0, 8);
@@ -1005,57 +1090,57 @@ uint16_t retrieve_bias_12_bit(char channel_in) {
 	int sprintf_store = 0;
 	volatile uint32_t num = 0;
 	char buffer[3];
-	buffer[0] = uart.rx_buffer[10];
-	buffer[1] = uart.rx_buffer[12];
-	buffer[2] = uart.rx_buffer[13];
+	buffer[0] = UART.rx_buffer[10];
+	buffer[1] = UART.rx_buffer[12];
+	buffer[2] = UART.rx_buffer[13];
 	num = atoi(buffer);
 	if (channel_in == PARAM_CH0) memset(UI.bias_A, 0, 8);
 	else memset(UI.bias_B, 0, 8);
-	if (channel_in == PARAM_CH0) sprintf_store = snprintf(UI.bias_A, 6, "%c%c.%c%c",uart.rx_buffer[9],buffer[0],buffer[1],buffer[2]);
-	else sprintf_store = snprintf(UI.bias_B, 6, "%c%c.%c%c",uart.rx_buffer[9],buffer[0],buffer[1],buffer[2]);
+	if (channel_in == PARAM_CH0) sprintf_store = snprintf(UI.bias_A, 6, "%c%c.%c%c",UART.rx_buffer[9],buffer[0],buffer[1],buffer[2]);
+	else sprintf_store = snprintf(UI.bias_B, 6, "%c%c.%c%c",UART.rx_buffer[9],buffer[0],buffer[1],buffer[2]);
 	return ((num * MAX_12BIT) / 330);
 	}
 
 bool retrieve_bias_sign() {
-	if (uart.rx_buffer[9] == '-') return NEGATIVE;
-	else if (uart.rx_buffer[9] == '+') return POSITIVE;
+	if (UART.rx_buffer[9] == '-') return NEGATIVE;
+	else if (UART.rx_buffer[9] == '+') return POSITIVE;
 	else return NULL;
 }
 
 void set_parameter() {
-	if (uart.rx_buffer[4] == PARAM_CH0) {
-		switch(uart.rx_buffer[6]) {
+	if (UART.rx_buffer[4] == PARAM_CH0) {
+		switch(UART.rx_buffer[6]) {
 			case PARAM_FREQ: 
-				funcgen.frequency_A = retrieve_frequency_uint32(PARAM_CH0);
-				set_functionality(FG0, funcgen.frequency_A, funcgen.output_type_A);
+				FUNCGEN.frequency_A = retrieve_frequency_uint32(PARAM_CH0);
+				set_functionality(FG0, FUNCGEN.frequency_A, FUNCGEN.output_type_A);
 				update_UI_activity(LCD_LINE_1, 1);
 				break;
 				
 			case PARAM_TYPE:
-				switch(uart.rx_buffer[9]) {
-					case TYPE_SINE: funcgen.output_type_A = SINE; snprintf(UI.type_A, 4, "%s","SIN"); break;
-					case TYPE_SQUARE: funcgen.output_type_A = SQUARE; snprintf(UI.type_A, 4, "%s","SQR"); break;
-					case TYPE_TRIANGLE: funcgen.output_type_A = TRIANGLE; snprintf(UI.type_A, 4, "%s","TRG"); break;
-					case TYPE_DC	  : funcgen.output_type_A = DC; snprintf(UI.type_A, 4, "%s","DC "); break;
-					case TYPE_OFF	  : funcgen.output_type_A = OFF; snprintf(UI.type_A, 4, "%s","OFF"); break;
+				switch(UART.rx_buffer[9]) {
+					case TYPE_SINE: FUNCGEN.output_type_A = SINE; snprintf(UI.type_A, 4, "%s","SIN"); break;
+					case TYPE_SQUARE: FUNCGEN.output_type_A = SQUARE; snprintf(UI.type_A, 4, "%s","SQR"); break;
+					case TYPE_TRIANGLE: FUNCGEN.output_type_A = TRIANGLE; snprintf(UI.type_A, 4, "%s","TRG"); break;
+					case TYPE_DC	  : FUNCGEN.output_type_A = DC; snprintf(UI.type_A, 4, "%s","DC "); break;
+					case TYPE_OFF	  : FUNCGEN.output_type_A = OFF; snprintf(UI.type_A, 4, "%s","OFF"); break;
 					default: break;
 				}
-				set_functionality(FG0, funcgen.frequency_A, funcgen.output_type_A);
+				set_functionality(FG0, FUNCGEN.frequency_A, FUNCGEN.output_type_A);
 				update_UI_activity(LCD_LINE_1, 0);
 				break;
 				
 			case PARAM_AMP:
-				funcgen.amplitude_A = retrieve_amplitude_12_bit(PARAM_CH0);
-				set_amplitude(funcgen.amplitude_A, FG0);
+				FUNCGEN.amplitude_A = retrieve_amplitude_12_bit(PARAM_CH0);
+				set_amplitude(FUNCGEN.amplitude_A, FG0);
 				update_UI_activity(LCD_LINE_2, 0);
 				break;
 				
 			case PARAM_BIAS: 
-				funcgen.bias_A = retrieve_bias_12_bit(PARAM_CH0);
-				funcgen.bias_A_sign = retrieve_bias_sign(); 
-				if (funcgen.bias_A_sign == POSITIVE) set_dc_bias(FG0, 0, NEGATIVE);
+				FUNCGEN.bias_A = retrieve_bias_12_bit(PARAM_CH0);
+				FUNCGEN.bias_A_sign = retrieve_bias_sign(); 
+				if (FUNCGEN.bias_A_sign == POSITIVE) set_dc_bias(FG0, 0, NEGATIVE);
 				else set_dc_bias(FG0, 0, POSITIVE);
-				set_dc_bias(FG0, funcgen.bias_A, funcgen.bias_A_sign);
+				set_dc_bias(FG0, FUNCGEN.bias_A, FUNCGEN.bias_A_sign);
 				update_UI_activity(LCD_LINE_2, 1);
 				break;
 				
@@ -1063,39 +1148,39 @@ void set_parameter() {
 		}
 		
 	}
-	else if (uart.rx_buffer[4] == PARAM_CH1) { 
-		switch(uart.rx_buffer[6]) {
+	else if (UART.rx_buffer[4] == PARAM_CH1) { 
+		switch(UART.rx_buffer[6]) {
 			case PARAM_FREQ: 
-				funcgen.frequency_B = retrieve_frequency_uint32(PARAM_CH1);
-				set_functionality(FG1, funcgen.frequency_B, funcgen.output_type_B);
+				FUNCGEN.frequency_B = retrieve_frequency_uint32(PARAM_CH1);
+				set_functionality(FG1, FUNCGEN.frequency_B, FUNCGEN.output_type_B);
 				update_UI_activity(LCD_LINE_3, 1);
 				break;
 				
 			case PARAM_TYPE:
-				switch(uart.rx_buffer[9]) {
-					case TYPE_SINE: funcgen.output_type_B = SINE; snprintf(UI.type_B, 4, "%s","SIN"); break;
-					case TYPE_SQUARE: funcgen.output_type_B = SQUARE;snprintf(UI.type_B, 4, "%s","SQR"); break;
-					case TYPE_TRIANGLE: funcgen.output_type_B = TRIANGLE; snprintf(UI.type_B, 4, "%s","TRG"); break;
-					case TYPE_DC	  : funcgen.output_type_B = DC; snprintf(UI.type_B, 4, "%s","DC "); break;
-					case TYPE_OFF	  : funcgen.output_type_B = OFF;snprintf(UI.type_B, 4, "%s","OFF"); break;
+				switch(UART.rx_buffer[9]) {
+					case TYPE_SINE: FUNCGEN.output_type_B = SINE; snprintf(UI.type_B, 4, "%s","SIN"); break;
+					case TYPE_SQUARE: FUNCGEN.output_type_B = SQUARE;snprintf(UI.type_B, 4, "%s","SQR"); break;
+					case TYPE_TRIANGLE: FUNCGEN.output_type_B = TRIANGLE; snprintf(UI.type_B, 4, "%s","TRG"); break;
+					case TYPE_DC	  : FUNCGEN.output_type_B = DC; snprintf(UI.type_B, 4, "%s","DC "); break;
+					case TYPE_OFF	  : FUNCGEN.output_type_B = OFF;snprintf(UI.type_B, 4, "%s","OFF"); break;
 					default: break;
 				}
-				set_functionality(FG1, funcgen.frequency_B, funcgen.output_type_B);
+				set_functionality(FG1, FUNCGEN.frequency_B, FUNCGEN.output_type_B);
 				update_UI_activity(LCD_LINE_3, 0);
 				break;
 				
 			case PARAM_AMP:
-				funcgen.amplitude_B = retrieve_amplitude_12_bit(PARAM_CH1);
-				set_amplitude(funcgen.amplitude_B, FG1);
+				FUNCGEN.amplitude_B = retrieve_amplitude_12_bit(PARAM_CH1);
+				set_amplitude(FUNCGEN.amplitude_B, FG1);
 				update_UI_activity(LCD_LINE_4, 0);
 				break;
 				
 			case PARAM_BIAS: 
-				funcgen.bias_B = retrieve_bias_12_bit(PARAM_CH1);
-				funcgen.bias_B_sign = retrieve_bias_sign(); 
-				if (funcgen.bias_B_sign == POSITIVE) set_dc_bias(FG1, 0, NEGATIVE);
+				FUNCGEN.bias_B = retrieve_bias_12_bit(PARAM_CH1);
+				FUNCGEN.bias_B_sign = retrieve_bias_sign(); 
+				if (FUNCGEN.bias_B_sign == POSITIVE) set_dc_bias(FG1, 0, NEGATIVE);
 				else set_dc_bias(FG1, 0, POSITIVE);
-				set_dc_bias(FG1, funcgen.bias_B, funcgen.bias_B_sign);
+				set_dc_bias(FG1, FUNCGEN.bias_B, FUNCGEN.bias_B_sign);
 				update_UI_activity(LCD_LINE_4, 1);
 				break;
 				
@@ -1113,33 +1198,33 @@ void clear_all_values() {
 }
 
 void clear_funcgen_values() {
-	funcgen.frequency_A = 0; 
-	funcgen.frequency_B = 0;
-	funcgen.phase_A = 0; 
-	funcgen.phase_B = 0;
-	funcgen.amplitude_A = 0; 
-	funcgen.amplitude_B = 0;
-	funcgen.output_type_A = OFF; 
-	funcgen.output_type_B = OFF;
-	funcgen.bias_A = 0; 
-	funcgen.bias_B = 0;
+	FUNCGEN.frequency_A = 0; 
+	FUNCGEN.frequency_B = 0;
+	FUNCGEN.phase_A = 0; 
+	FUNCGEN.phase_B = 0;
+	FUNCGEN.amplitude_A = 0; 
+	FUNCGEN.amplitude_B = 0;
+	FUNCGEN.output_type_A = OFF; 
+	FUNCGEN.output_type_B = OFF;
+	FUNCGEN.bias_A = 0; 
+	FUNCGEN.bias_B = 0;
 }
 
 void init_UI_array() {
-	snprintf(UI.amplitude_A, 4,"0.00");
-	snprintf(UI.amplitude_B, 4,"0.00");
-	snprintf(UI.bias_A, 5,"+0.00");
-	snprintf(UI.bias_B, 5,"+0.00");
+	snprintf(UI.amplitude_A, 4, ZERO_AMPLITUDE);
+	snprintf(UI.amplitude_B, 4, ZERO_AMPLITUDE);
+	snprintf(UI.bias_A, 5, ZERO_BIAS);
+	snprintf(UI.bias_B, 5, ZERO_BIAS);
 	snprintf(UI.frequency_A, 8,"0");
 	snprintf(UI.frequency_B, 8,"0");
 	_delay_ms(10);
 }
 
 void clear_wifi_values() {
-	memset(wifi.SSID, 0, MAX_WIFI_SSID_LENGTH);
-	memset(wifi.PASS, 0, MAX_WIFI_PASS_LENGTH);
-	memset(wifi.device_MAC, 0, MAC_STRING_LENGTH);
-	wifi.encryption = 0;
+	memset(WIFI.SSID, 0, MAX_WIFI_SSID_LENGTH);
+	memset(WIFI.PASS, 0, MAX_WIFI_PASS_LENGTH);
+	memset(WIFI.device_MAC, 0, MAC_STRING_LENGTH);
+	WIFI.encryption = 0;
 }
 
 int main() {
@@ -1149,8 +1234,8 @@ int main() {
 		enum MENU_STATES_MAIN main_menu_state = INIT_STATE;
 		Init_Device();
 		Init_UI();
-		sei();
-	
+		//sei();
+	 
 	#if TEST_BUZZER
 		while(1){
 			beep();
@@ -1182,7 +1267,7 @@ int main() {
 			_delay_ms(500);
 		}
 	#endif
-	
+	//sei();
 	while(1) {
 		switch(main_menu_state) {
 			
@@ -1192,14 +1277,14 @@ int main() {
 					case WIFI_LAN_CONNECTON: 
 						start_wlan_communication(); 
 						break;
-						
 					case WIFI_DIRECT_CONNECTION:
 						clear_LCD();
-						print_LCD_line("  Starting direct   ", LCD_LINE_1);
-						print_LCD_line("communication wizard", LCD_LINE_2);
-						print_LCD_line("<  Push to begin   >", LCD_LINE_4);
+						print_LCD_line(START_DIRECT_MSG, LCD_LINE_1);
+						print_LCD_line(START_COMM_MSG, LCD_LINE_2);
+						print_LCD_line(PB_MSG, LCD_LINE_4);
 						while(!poll_switch());
 						main_menu_state = DIRECT_PAIRING_INIT;
+						sei();
 						break;
 					
 					case NO_STORED_CONNECTION: default:
@@ -1211,39 +1296,43 @@ int main() {
 						break;
 				}
 				break;
-					
 			case PROCEED_BUTTON_PERFORM:
 				clear_LCD();
-				print_LCD_line("Press main button to", LCD_LINE_2);
-				print_LCD_line("Continue to sequence", LCD_LINE_3);
+				print_LCD_line(PB_MSG, LCD_LINE_2);
 				while(!poll_switch());
 				main_menu_state = BUTTON_STATE_SELECTION;
 				break;
 			
 			case BUTTON_STATE_SELECTION:
 				clear_LCD();
-				print_LCD_line("  Starting Direct   ", LCD_LINE_1);
-				print_LCD_line("Connection Sequence ", LCD_LINE_2);
-				print_LCD_line("Press button to LAN ", LCD_LINE_3);
-				print_LCD_line("Pairing in X sec... ", LCD_LINE_4);
+				print_LCD_line(START_DIRECT_MSG, LCD_LINE_1);
+				print_LCD_line(START_COMM_MSG, LCD_LINE_2);
+				print_LCD_line(PB_MSG, LCD_LINE_3);
+				print_LCD_line("WLAN Pairing.. X sec", LCD_LINE_4);
+				//sei();
 				for (uint8_t ptr = 5; ptr > 0; ptr--) {
-					print_LCD_char(ptr + '0',LCD_LINE_4, 11); // X position
+					print_LCD_char(ptr + '0',LCD_LINE_4, 15); // X position
 					_delay_ms(1000);
 					if (poll_switch()) {
 						main_menu_state = WIFI_LAN_PAIRING_INIT;
 						break;
 					}
 				}
-				if (main_menu_state != WIFI_LAN_PAIRING_INIT) main_menu_state = DIRECT_PAIRING_INIT;
+				if (main_menu_state != WIFI_LAN_PAIRING_INIT) {
+					sei();
+					main_menu_state = DIRECT_PAIRING_INIT;
+				}
 				break;
 				
 			case DIRECT_PAIRING_INIT:
 				main_menu_state = IDLE;
+				sei();
 				direct_pairing();
 				break;
 			
 			case WIFI_LAN_PAIRING_INIT:
 				main_menu_state = IDLE;
+				sei();
 				wifi_lan_pairing();
 				break;
 				

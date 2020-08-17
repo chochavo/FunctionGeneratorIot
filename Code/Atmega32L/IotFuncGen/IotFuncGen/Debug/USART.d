@@ -1,4 +1,4 @@
-SPIMaster.d SPIMaster.o: .././SPIMaster.c .././Headers\main.h \
+USART.d USART.o: .././USART.c .././Headers\USART.h .././Headers\main.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\io.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\sfr_defs.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\inttypes.h \
@@ -22,7 +22,9 @@ SPIMaster.d SPIMaster.o: .././SPIMaster.c .././Headers\main.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\stdlib.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\wdt.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\eeprom.h \
- .././Headers\WifiParams.h .././Headers\SPIMaster.h
+ .././Headers\WifiParams.h .././Headers\main.h
+
+.././Headers\USART.h:
 
 .././Headers\main.h:
 
@@ -74,4 +76,4 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\
 
 .././Headers\WifiParams.h:
 
-.././Headers\SPIMaster.h:
+.././Headers\main.h:

@@ -67,10 +67,10 @@ enum DEVICES { DACA = 1, DACB, DACA_BIAS, DACB_BIAS, FG0, FG1, LCD_POT };
 enum MODES { SINE = 1, TRIANGLE, SQUARE, DC, OFF };
 enum LED_STATES { RED = 1, GREEN, BLUE, LED_OFF };
 enum MENU_STATES_MAIN { INIT_STATE = 1, PROCEED_BUTTON_PERFORM, BUTTON_STATE_SELECTION, WIFI_LAN_PAIRING_INIT, DIRECT_PAIRING_INIT, IDLE, };
-enum DIRECT_PAIRING_STATES {SHOW_DIRECT_MESSAGE = 1, ECHO_OFF_COMMAND, OPEN_DIRECT_AP, OPEN_SOCKET_SERVER, WAIT_FOR_DEVICE, MESSAGE_HANDLING_STATE };		
+enum DIRECT_PAIRING_STATES {SHOW_DIRECT_MESSAGE = 1, ECHO_OFF_COMMAND, SET_AP_MODE, OPEN_DIRECT_AP, SET_MUX_COMMAND, OPEN_SOCKET_SERVER, WAIT_FOR_DEVICE, MESSAGE_HANDLING_STATE };		
 enum MESSAGE_HANDLER_STATES { MESSAGE_HANDLER_IDLE = 1, PROVIDE_DETAILS, BOOT_FROM_APP, FUNCTION_HANDLER, LCD_PARAM_ADJUST, VOLUME_ADJUST, RESET_HANDLER };
-enum LAN_PAIRING_STATES { SHOW_LAN_MESSAGE = 1, ECHO_OFF, OPEN_LOCAL_AP, OPEN_LOCAL_SOCKET, WAIT_FOR_CONNECT, RETRIEVE_CREDENTIALS };
-enum WLAN_COMMUNICATION_STATES {INIT_MESSAGE = 1, REPEAT_OFF, REQUEST_WIFI, REQUEST_DHCP, CREATE_SOCKET_SERVER_WLAN, WAIT_FOR_WLAN_DEVICE, DEVICE_CONNECTED};
+enum LAN_PAIRING_STATES { SHOW_LAN_MESSAGE = 1, ECHO_OFF, SET_AP_MODE_LAN, OPEN_LOCAL_AP, SET_MUX_COMMAND_LAN, OPEN_LOCAL_SOCKET, WAIT_FOR_DEVICE_CONNECT, RETRIEVE_MAC, SEND_MAC, RETRIEVE_CREDENTIALS };
+enum WLAN_COMMUNICATION_STATES {INIT_MESSAGE = 1, REPEAT_OFF, REQUEST_WIFI, CREATE_SOCKET_SERVER_WLAN, WAIT_FOR_WLAN_DEVICE, DEVICE_CONNECTED};
 	
 /* RGB LED  */
 #define LED_DDR		DDRB
@@ -133,8 +133,8 @@ enum WLAN_COMMUNICATION_STATES {INIT_MESSAGE = 1, REPEAT_OFF, REQUEST_WIFI, REQU
 #define DISABLE_DEVICE()	MISC_PORT &= ~PS_HOLD	// Disable RX interrupt
 #define BUZZER_H()		MISC_PORT |= BUZZER	// Enable interrupt on RX complete
 #define BUZZER_L()	MISC_PORT &= ~BUZZER	// Disable RX interrupt
-#define ENABLE_TIMER()  0 // TCCR1B |= (1 << CS10) | (1 << CS12)
-#define DISABLE_TIMER() 0 //TCCR1B &= ~(1 << CS10) & ~(1 << CS12)
+//#define ENABLE_TIMER()  0 // TCCR1B |= (1 << CS10) | (1 << CS12)
+//#define DISABLE_TIMER() 0 //TCCR1B &= ~(1 << CS10) & ~(1 << CS12)
 
 #define RESET_DEVICE()        \
 do                          \
@@ -167,16 +167,35 @@ do                          \
 #define MAX_COMMAND_LENGTH 128
 #define FG_DATA_START_NUM 9
 #define NUMBER_OF_FREQUENCY_DIGITS 8
-#define MAXIMUM_COMMAND_RETRIES 5
+#define MAXIMUM_COMMAND_RETRIES 20
 #define TIMER_PERIOD 1 // In SEC
 #define TIMER_COMPARE_VALUE (F_CPU / 1024) * TIMER_PERIOD
 
-#define FIRMWARE_VERSION_A '1'
-#define FIRMWARE_VERSION_B '5'
+#define FIRMWARE_VERSION_A '2'
+#define FIRMWARE_VERSION_B '0'
 
 #define BRIGHTNESS 0
 #define CONTRAST 1
 #define VOLUME 2
+
+#define MAX_STRING_BUFFER 20
+#define ZERO_AMPLITUDE "0.00"
+#define ZERO_BIAS "+0.00"
+#define START_WLAN_MSG			" Starting Wi-Fi LAN "
+#define START_DIRECT_MSG		"  Starting Direct   "
+#define START_COMM_MSG			"communication wizard"
+#define ESP32_STATUS_MSG_OK		"ESP32 Device......OK"
+#define ESP32_STATUS_MSG		"ESP32 Device......  "
+#define REQUEST_NETWORK_MSG		"Opening Network...  "
+#define REQUEST_NETWORK_MSG_OK	"Opening Network...OK"
+#define CREATING_SERVER_MSG		"Creating Server...  "
+#define CREATING_SERVER_MSG_OK	"Creating Server...OK"
+#define WAIT_FOR_DEVICE_MSG		"<Waiting For Device>"
+#define DEVICE_CONNECTED_MSG	" <Device connected> "
+#define SHUTDOWN_MSG			"  Shutting Down...  "
+#define IN_X_SEC_MSG			"      in X sec      "
+#define REBOOT_MSG				"   Rebooting...     "
+#define PB_MSG					"Push button to begin"
 
 struct MAIN_STRUCTURE {
 	uint32_t frequency_A, frequency_B;
@@ -185,26 +204,26 @@ struct MAIN_STRUCTURE {
 	enum MODES output_type_A, output_type_B;
 	uint16_t bias_A, bias_B;
 	bool bias_A_sign, bias_B_sign;
-} funcgen;
+} FUNCGEN;
 
 struct STATUS_STRUCTURE {
 	uint8_t battery_voltage;
 	bool   ac_power_status;
 	bool socket_active;
-} status;
+} STATUS;
 
 struct WIFI_STRUCTURE {
 	char SSID[MAX_WIFI_SSID_LENGTH];
 	char PASS[MAX_WIFI_PASS_LENGTH];
 	char device_MAC[MAC_STRING_LENGTH];
 	char encryption;
-} wifi;
+} WIFI;
 
 struct LCD_PARAMETERS {
 	uint8_t brightness;
 	uint8_t contrast;
 	uint8_t volume;
-	} sg;
+	} LCD;
 
 struct UI_STRINGS {
 	char frequency_A[8], frequency_B[8];

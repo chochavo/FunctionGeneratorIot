@@ -103,7 +103,7 @@ void LCD_logo_display() {
 	print_LCD_line(" Function Generator ", LCD_LINE_2);
 	snprintf(lbuff, 20, "  Firmware Rev:%c.%c  ", FIRMWARE_VERSION_A, FIRMWARE_VERSION_B);
 	print_LCD_line(lbuff, LCD_LINE_3);
-	print_LCD_line("     July 2019      ", LCD_LINE_4);
+	print_LCD_line("  KhomLabs Design   ", LCD_LINE_4);
 }
 
 void print_LCD_line(char *input_string, uint8_t line_number) {
