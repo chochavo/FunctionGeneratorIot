@@ -117,7 +117,7 @@ void shutdown_sequence(bool is_erase_requested) {
 	print_LCD_line("in X sec            ", LCD_LINE_3);
 	for (uint8_t cntx = 5; cntx > 0; cntx--) {
 		print_LCD_char(cntx + '0',LCD_LINE_3, 3);
-		_delay_ms(1000);
+		_delay_ms(DELAY_COMMAND_MS);
 	}
 	//send_command_UART("SHDN\r\n");
 	if (is_erase_requested) erase_EEPROM_1K();
@@ -154,7 +154,7 @@ void Init_Device() {
 	ENABLE_DEVICE();
 	Init_SPI_All();
 	Init_LCD();
-	_delay_ms(100);
+	_delay_ms(DELAY_COMMAND_MS);
 	Init_LCD_4bit();
 	Init_UART();
 	Init_ADC();
@@ -177,7 +177,7 @@ void Init_UI() {
 	#else
 	LCD_logo_display();
 	play_melody(true);
-	_delay_ms(3000);
+	_delay_ms(2 * DELAY_COMMAND_MS);
 	#endif
 }
 
@@ -355,21 +355,14 @@ void halt_system() {
 	uint8_t pressed_button_seconds = 0;
 	clear_LCD();
 	print_LCD_line("Communication error!", LCD_LINE_1);
-	print_LCD_line("Press the button -->", LCD_LINE_2);
-	print_LCD_line("Long press: Shutdown", LCD_LINE_3);
-	print_LCD_line("Short press: Reboot ", LCD_LINE_4);
+	print_LCD_line("Press the button    ", LCD_LINE_2);
+	print_LCD_line("to restart device   ", LCD_LINE_3);
+	print_LCD_line("   <<< ERROR >>>    ", LCD_LINE_4);
 	while(true) {
 		if (poll_switch()) {
-			pressed_button_seconds++;
-			_delay_ms(1000);
-			if (pressed_button_seconds > 3) // Long press
-				shutdown_sequence(true);
-		}
-		else {
-			send_command_UART("AT+GSLP\r\n"); // Perform reset
-			_delay_ms(500);
+			send_command_UART("AT+GLSP=1\r\n"); // Perform reset
+			_delay_ms(DELAY_COMMAND_MS);
 			RESET_DEVICE();
-			while(true);
 		}
 	}
 }
@@ -401,12 +394,12 @@ void direct_pairing() {
 							UART.wait_for_message = WAIT_FOR_OK;
 							print_LCD_line(ESP32_STATUS_MSG_OK, LCD_LINE_1);				
 							print_LCD_line(REQUEST_NETWORK_MSG, LCD_LINE_2);
-							break;
 						}
-					//else clear_uart_rx_message();
-					retries++;
-					send_command_UART("ATE0\r\n");
-					_delay_ms(400);
+					else {
+						retries++;
+						send_command_UART("ATE0\r\n");
+						_delay_ms(DELAY_COMMAND_MS);
+					}
 					break;
 			
 				case SET_AP_MODE: // create wifi AP, create socket.
@@ -420,7 +413,7 @@ void direct_pairing() {
 					//else clear_uart_rx_message();
 					retries++;
 					send_command_UART("AT+CWMODE=3\r\n");
-					_delay_ms(400);
+					_delay_ms(DELAY_COMMAND_MS);
 					break;
 							
 				case OPEN_DIRECT_AP:
@@ -436,7 +429,7 @@ void direct_pairing() {
 					
 					retries++;
 					send_command_UART("AT+CWSAP=\"IOT_FUNCGEN\",\"0\",1,0\r\n");
-					_delay_ms(800);
+					_delay_ms(DELAY_COMMAND_MS);
 					break;
 				
 				case SET_MUX_COMMAND:
@@ -449,7 +442,7 @@ void direct_pairing() {
 					}
 					retries++;
 					send_command_UART("AT+CIPMUX=1\r\n");
-					_delay_ms(400);
+					_delay_ms(DELAY_COMMAND_MS);
 					break;	
 					
 				case OPEN_SOCKET_SERVER:
@@ -464,7 +457,7 @@ void direct_pairing() {
 					}
 					retries++;
 					send_command_UART("AT+CIPSERVER=1,1726\r\n");
-					_delay_ms(800);
+					_delay_ms(DELAY_COMMAND_MS);
 					break;
 				
 				
@@ -477,7 +470,7 @@ void direct_pairing() {
 							clear_LCD();
 							retries = 0;
 							print_LCD_line(DEVICE_CONNECTED_MSG, LCD_LINE_2);
-							_delay_ms(2000);
+							_delay_ms(2 * DELAY_COMMAND_MS);
 							break;
 					}
 					break;				
@@ -493,7 +486,7 @@ void direct_pairing() {
 			halt_system();
 			retries = 0;
 			direct_pairing_state = SHOW_DIRECT_MESSAGE;
-			_delay_ms(1000);
+			_delay_ms(DELAY_COMMAND_MS);
 		}
 	}
 }
@@ -527,7 +520,7 @@ void wifi_lan_pairing() {
 				}
 				send_command_UART("ATE0\r\n");
 				retries++;
-				_delay_ms(400);
+				_delay_ms(DELAY_COMMAND_MS);
 				if (poll_switch()) shutdown_sequence(true);
 				break;
 			
@@ -541,7 +534,7 @@ void wifi_lan_pairing() {
 					}
 					retries++;
 					send_command_UART("AT+CWMODE=1\r\n");
-					_delay_ms(400);
+					_delay_ms(DELAY_COMMAND_MS);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 							
@@ -557,7 +550,7 @@ void wifi_lan_pairing() {
 					}
 					send_command_UART("AT+CWSAP=\"IOT_FUNCGEN\",\"0\",1,0\r\n");
 					retries++;
-					_delay_ms(800);
+					_delay_ms(DELAY_COMMAND_MS);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 				
@@ -571,7 +564,7 @@ void wifi_lan_pairing() {
 					}
 					retries++;
 					send_command_UART("AT+CIPMUX=1\r\n");
-					_delay_ms(400);
+					_delay_ms(DELAY_COMMAND_MS);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 								
@@ -587,7 +580,7 @@ void wifi_lan_pairing() {
 					}
 					send_command_UART("AT+CIPSERVER=1,1726\r\n");
 					retries++;
-					_delay_ms(800);
+					_delay_ms(DELAY_COMMAND_MS);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 				
@@ -602,7 +595,7 @@ void wifi_lan_pairing() {
 						print_LCD_line("<   Retrieving...  >", LCD_LINE_3);
 						STATUS.socket_active = true;
 						retries = 0;
-						_delay_ms(1000);
+						_delay_ms(DELAY_COMMAND_MS);
 						break;
 					}
 					if (poll_switch()) shutdown_sequence(true);
@@ -620,7 +613,7 @@ void wifi_lan_pairing() {
 					}
 					send_command_UART("AT+CIPSTAMAC?\r\n");
 					retries++;
-					_delay_ms(400);					
+					_delay_ms(DELAY_COMMAND_MS);					
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 				
@@ -640,7 +633,7 @@ void wifi_lan_pairing() {
 							else {
 								send_command_UART("AT+CIPSEND=0,23\r\n");
 								retries++;
-								_delay_ms(500);
+								_delay_ms(DELAY_COMMAND_MS);
 							}
 						}
 					}
@@ -658,7 +651,7 @@ void wifi_lan_pairing() {
 							}
 							else {
 								retries++;
-								_delay_ms(500);
+								_delay_ms(DELAY_COMMAND_MS);
 							}
 						}
 					}
@@ -679,7 +672,7 @@ void wifi_lan_pairing() {
 						print_LCD_line(buffer_LCD2, LCD_LINE_3);
 						if (WIFI.encryption != '4') print_LCD_line("Connection: Secured", LCD_LINE_4);
 						else  print_LCD_line("Connection: Open    ", LCD_LINE_4);
-						_delay_ms(4000);
+						_delay_ms(4 * DELAY_COMMAND_MS);
 						clear_uart_rx_message();
 						start_wlan_communication();
 						break;
@@ -709,7 +702,7 @@ void start_wlan_communication() {
 				print_LCD_line(START_WLAN_MSG, LCD_LINE_2);
 				print_LCD_line(START_COMM_MSG, LCD_LINE_3);
 				retries = 0;
-				_delay_ms(2000);
+				_delay_ms(2 * DELAY_COMMAND_MS);
 				clear_LCD();
 				print_LCD_line(ESP32_STATUS_MSG, LCD_LINE_1);
 				communication_state = ECHO_OFF;
@@ -728,7 +721,7 @@ void start_wlan_communication() {
 					}
 					send_command_UART("ATE0\r\n");
 					retries++;
-					_delay_ms(400);
+					_delay_ms(DELAY_COMMAND_MS);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 
@@ -744,7 +737,7 @@ void start_wlan_communication() {
 					}
 					send_command_UART(create_wifi_command());
 					retries++;
-					_delay_ms(5000);
+					_delay_ms(DELAY_COMMAND_MS);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 				
@@ -761,7 +754,7 @@ void start_wlan_communication() {
 					}
 					send_command_UART("AT+CIPSERVER=1,1726\r\n");
 					retries++;
-					_delay_ms(800);
+					_delay_ms(DELAY_COMMAND_MS);
 					if (poll_switch()) shutdown_sequence(true);
 					break;
 				
@@ -775,7 +768,7 @@ void start_wlan_communication() {
 						print_LCD_line(DEVICE_CONNECTED_MSG, LCD_LINE_2);
 						STATUS.socket_active = true;
 						beep(); _delay_ms(50); beep();
-						_delay_ms(2000);
+						_delay_ms(2 * DELAY_COMMAND_MS);
 						break;
 					}
 					if (poll_switch()) shutdown_sequence(true);
@@ -794,7 +787,7 @@ void start_wlan_communication() {
 			halt_system();
 			retries = 0;
 			communication_state = INIT_MESSAGE;
-			_delay_ms(1000);
+			_delay_ms(DELAY_COMMAND_MS);
 		}
 	}
 }
@@ -845,7 +838,7 @@ void socket_message_handler() {
 				print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 				for (uint8_t ptr = 5; ptr > 0; ptr--) {
 					print_LCD_char(ptr + '0',LCD_LINE_4, 9); // X position
-					_delay_ms(1000);
+					_delay_ms(DELAY_COMMAND_MS);
 				}
 				play_melody(false);
 				RESET_DEVICE();
@@ -859,7 +852,7 @@ void socket_message_handler() {
 					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
 						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
-						_delay_ms(1000);
+						_delay_ms(DELAY_COMMAND_MS);
 					}	
 					RESET_DEVICE();
 				}
@@ -870,7 +863,7 @@ void socket_message_handler() {
 					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
 						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
-						_delay_ms(1000);
+						_delay_ms(DELAY_COMMAND_MS);
 					}
 					RESET_DEVICE();
 				}
@@ -880,7 +873,7 @@ void socket_message_handler() {
 					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
 						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
-						_delay_ms(1000);
+						_delay_ms(DELAY_COMMAND_MS);
 					}
 					play_melody(false);
 					DISABLE_DEVICE();
@@ -891,7 +884,7 @@ void socket_message_handler() {
 					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
 						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
-						_delay_ms(1000);
+						_delay_ms(DELAY_COMMAND_MS);
 					}
 					play_melody(false);
 					erase_EEPROM_1K();
@@ -903,7 +896,7 @@ void socket_message_handler() {
 					print_LCD_line(IN_X_SEC_MSG, LCD_LINE_3);
 					for (uint8_t ptr = 5; ptr > 0; ptr--) {
 						print_LCD_char(ptr + '0',LCD_LINE_3, 9); // X position
-						_delay_ms(1000);
+						_delay_ms(DELAY_COMMAND_MS);
 					}
 					play_melody(false);
 					RESET_DEVICE();
@@ -1228,15 +1221,16 @@ void clear_wifi_values() {
 }
 
 int main() {
-	#if PRE_PROG
+	/* Testing definitions */
+	#ifdef PRE_PROG
 		ENABLE_DEVICE();
 	#else
 		enum MENU_STATES_MAIN main_menu_state = INIT_STATE;
 		Init_Device();
 		Init_UI();
 		//sei();
-	 
-	#if TEST_BUZZER
+
+	#ifdef TEST_BUZZER
 		while(1){
 			beep();
 			_delay_ms(1000);
@@ -1247,7 +1241,7 @@ int main() {
 		}
 	#endif
 	
-	#if TEST_ADC 
+	#ifdef TEST_ADC 
 		clear_LCD();
 		while(1) {
 			static char buff_line[20];
@@ -1267,7 +1261,88 @@ int main() {
 			_delay_ms(500);
 		}
 	#endif
-	//sei();
+	
+	#define TEST_UART
+	#ifdef TEST_UART 
+// 	enum UART_RX_MESSAGE_TYPES { WAIT_FOR_OK = 1, WAIT_FOR_GOT_IP, WAIT_FOR_READY_TO_SEND,
+// 		WAIT_FOR_CONNECT, WAIT_FOR_CLOSED, WAIT_FOR_SEND_OK,
+// 	WAIT_FOR_READY, WAIT_FOR_DATA ,WAIT_FOR_CREDENTIALS ,WAIT_FOR_MAC };
+		sei();
+		while(1) {
+		send_command_UART("Device is ready...\r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_OK\r\n");
+		UART.wait_for_message = WAIT_FOR_OK;
+		while(!UART.message_received);
+		send_command_UART("Valid message: ");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+		
+		UART.wait_for_message = WAIT_FOR_GOT_IP;
+		while(!UART.message_received);
+		send_command_UART("Valid message: \r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_READY_TO_SEND\r\n");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+		
+		UART.wait_for_message = WAIT_FOR_READY_TO_SEND;
+		while(!UART.message_received);
+		send_command_UART("Valid message: \r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_CONNECT\r\n");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+		
+		UART.wait_for_message = WAIT_FOR_CONNECT;
+		while(!UART.message_received);
+		send_command_UART("Valid message: \r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_CLOSED\r\n");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+		
+		UART.wait_for_message = WAIT_FOR_CLOSED;
+		while(!UART.message_received);
+		send_command_UART("Valid message: \r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_SEND_OK\r\n");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+		
+		UART.wait_for_message = WAIT_FOR_SEND_OK;
+		while(!UART.message_received);
+		send_command_UART("Valid message: \r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_READY\r\n");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+		
+		UART.wait_for_message = WAIT_FOR_READY;
+		while(!UART.message_received);
+		send_command_UART("Valid message: \r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_DATA\r\n");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+		
+		UART.wait_for_message = WAIT_FOR_DATA;
+		while(!UART.message_received);
+		send_command_UART("Valid message: \r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_CREDENTIALS\r\n");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+		
+		UART.wait_for_message = WAIT_FOR_CREDENTIALS;
+		while(!UART.message_received);
+		send_command_UART("Valid message: \r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_OK\r\n");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+		
+		UART.wait_for_message = WAIT_FOR_MAC;
+		while(!UART.message_received);
+		send_command_UART("Valid message: \r\n");
+		send_command_UART("UART.wait_for_message = WAIT_FOR_MAC\r\n");
+		send_command_UART(UART.rx_buffer);
+		clear_uart_rx_message();
+				
+		}
+		#endif
+		
 	while(1) {
 		switch(main_menu_state) {
 			

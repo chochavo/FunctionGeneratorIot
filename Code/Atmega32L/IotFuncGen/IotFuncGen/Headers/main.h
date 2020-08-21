@@ -18,14 +18,14 @@
 /*-----------------------------*/
 /*--  PORT I/O Definitions	 --*/
 
-#define PRE_PROG 0
-#define SKIP_LOGO 0
-#define INITIATE_WLAN_PAIRING 0
-#define INITIATE_DIRECT_PAIRING 0
-#define PERFORM_FG_TEST 0
-#define TEST_BUZZER 0
-#define TEST_ADC 0
-#define RGB_LED_SUPPORT 0
+// #define PRE_PROG
+// #define SKIP_LOGO
+// #define INITIATE_WLAN_PAIRING
+// #define INITIATE_DIRECT_PAIRING
+// #define PERFORM_FG_TEST
+// #define TEST_BUZZER
+// #define TEST_ADC
+// #define RGB_LED_SUPPORT
 
 #define POSITIVE false
 #define NEGATIVE true
@@ -49,7 +49,8 @@
 #define POWER_ADC_THRESHOLD 500
 #define BATTERY_CMD_LENGTH 10
 #define POWER_CMD_LENGTH 8
-
+#define DELAY_COMMAND_MS 1000
+#define DELAY_DATA_MS 10
 /* SPI Chip Enable  */
 #define SPI_CE_DDR		DDRC
 #define LCD_POT_DDR		DDRA

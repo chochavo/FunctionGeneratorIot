@@ -26,7 +26,7 @@ struct UART{
 /* Prototypes */
 void Init_UART();
 char UART_read_char();
-void write_char_UART(char data);
-void send_command_UART(char *str);
+void write_char_UART(unsigned char data);
+void send_command_UART(unsigned char *str);
 void clear_uart_rx_message();
 #endif /* USART_H_ */

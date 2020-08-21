@@ -148,12 +148,12 @@ char UART_read_char() {
 	return UDR;
 }
 
-void write_char_UART(char data) {
+void write_char_UART(unsigned char data) {
 	while(!(UCSRA & (1<<UDRE)));
 	UDR=data;
 }
 
-void send_command_UART(char *str) {
+void send_command_UART(unsigned char *str) {
 	while (*str != '\0') {
 		write_char_UART(*str);
 		++str;
