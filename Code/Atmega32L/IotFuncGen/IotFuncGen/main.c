@@ -352,7 +352,6 @@ void pack_mac_string() {
 }
 
 void halt_system() {
-	uint8_t pressed_button_seconds = 0;
 	clear_LCD();
 	print_LCD_line("Communication error!", LCD_LINE_1);
 	print_LCD_line("Press the button    ", LCD_LINE_2);
@@ -1228,7 +1227,7 @@ int main() {
 		enum MENU_STATES_MAIN main_menu_state = INIT_STATE;
 		Init_Device();
 		Init_UI();
-		//sei();
+		sei();
 
 	#ifdef TEST_BUZZER
 		while(1){
@@ -1262,7 +1261,6 @@ int main() {
 		}
 	#endif
 	
-	#define TEST_UART
 	#ifdef TEST_UART 
 // 	enum UART_RX_MESSAGE_TYPES { WAIT_FOR_OK = 1, WAIT_FOR_GOT_IP, WAIT_FOR_READY_TO_SEND,
 // 		WAIT_FOR_CONNECT, WAIT_FOR_CLOSED, WAIT_FOR_SEND_OK,

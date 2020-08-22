@@ -26,6 +26,10 @@
 // #define TEST_BUZZER
 // #define TEST_ADC
 // #define RGB_LED_SUPPORT
+// #define TEST_UART
+
+//#define ESP32 
+#define ESP8266
 
 #define POSITIVE false
 #define NEGATIVE true
