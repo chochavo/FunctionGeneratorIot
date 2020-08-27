@@ -52,6 +52,4 @@ void print_LCD_line(char *input_string, uint8_t line_number);
 void clear_LCD_line(unsigned char line);
 void clear_LCD();
 void print_LCD_char(uint8_t ch_in, uint8_t line, uint8_t position);
-void print_LCD_segment(char *input_string, uint8_t line, uint8_t segment);
-void clear_LCD_segment(uint8_t line, uint8_t segment);
 #endif

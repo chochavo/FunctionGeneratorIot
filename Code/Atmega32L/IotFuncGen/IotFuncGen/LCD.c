@@ -96,15 +96,6 @@ void lcd_write_4(uint8_t theByte) {
 	lcd_E_port &= ~(1<<lcd_E_bit);                  // Enable pin low
 	_delay_us(70);                                   // implement 'Data hold time' (10 nS) and 'Enable cycle time' (500 nS)
 	}
-	
-void LCD_logo_display() {
-	char lbuff[20];
-	print_LCD_line("  IoT Dual-Channel  ", LCD_LINE_1);
-	print_LCD_line(" Function Generator ", LCD_LINE_2);
-	snprintf(lbuff, 20, "  Firmware Rev:%c.%c  ", FIRMWARE_VERSION_A, FIRMWARE_VERSION_B);
-	print_LCD_line(lbuff, LCD_LINE_3);
-	print_LCD_line("  KhomLabs Design   ", LCD_LINE_4);
-}
 
 void print_LCD_line(char *input_string, uint8_t line_number) {
 	lcd_write_instruction_4d(LCD_SET_CURSOR | line_number);
@@ -125,24 +116,4 @@ void clear_LCD() {
 void print_LCD_char(uint8_t ch_in, uint8_t line, uint8_t position) {
 	lcd_write_instruction_4d((LCD_SET_CURSOR | line) + position);
 	lcd_write_character_4d(ch_in);
-}
-
-void print_LCD_segment(char *input_string, uint8_t line, uint8_t segment) {
-	if (segment == 0) lcd_write_instruction_4d(LCD_SET_CURSOR | line);
-	else {
-		if (((line == LCD_LINE_1) || (line == LCD_LINE_3))) lcd_write_instruction_4d(LCD_SET_CURSOR | (line + 0x06));
-		else lcd_write_instruction_4d(LCD_SET_CURSOR | (line + 0x0A));
-	}
-	lcd_write_string_4d(input_string);
-}
-
-void clear_LCD_segment(uint8_t line, uint8_t segment) {
-	if (segment == 0) {
-		if (((line == LCD_LINE_1) || (line == LCD_LINE_3))) print_LCD_segment("       ", line, segment);
-		else print_LCD_segment("          ", line, segment);
-	}
-	else {
-		if (((line == LCD_LINE_1) || (line == LCD_LINE_3))) print_LCD_segment("             ", line, segment);
-		else print_LCD_segment("           ", line, segment);
-	}
 }

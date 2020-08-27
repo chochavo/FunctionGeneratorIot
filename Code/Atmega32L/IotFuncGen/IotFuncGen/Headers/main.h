@@ -71,11 +71,8 @@
 enum DEVICES { DACA = 1, DACB, DACA_BIAS, DACB_BIAS, FG0, FG1, LCD_POT };
 enum MODES { SINE = 1, TRIANGLE, SQUARE, DC, OFF };
 enum LED_STATES { RED = 1, GREEN, BLUE, LED_OFF };
-enum MENU_STATES_MAIN { INIT_STATE = 1, PROCEED_BUTTON_PERFORM, BUTTON_STATE_SELECTION, WIFI_LAN_PAIRING_INIT, DIRECT_PAIRING_INIT, IDLE, };
-enum DIRECT_PAIRING_STATES {SHOW_DIRECT_MESSAGE = 1, ECHO_OFF_COMMAND, SET_AP_MODE, OPEN_DIRECT_AP, SET_MUX_COMMAND, OPEN_SOCKET_SERVER, WAIT_FOR_DEVICE, MESSAGE_HANDLING_STATE };		
-enum MESSAGE_HANDLER_STATES { MESSAGE_HANDLER_IDLE = 1, PROVIDE_DETAILS, BOOT_FROM_APP, FUNCTION_HANDLER, LCD_PARAM_ADJUST, VOLUME_ADJUST, RESET_HANDLER };
-enum LAN_PAIRING_STATES { SHOW_LAN_MESSAGE = 1, ECHO_OFF, SET_AP_MODE_LAN, OPEN_LOCAL_AP, SET_MUX_COMMAND_LAN, OPEN_LOCAL_SOCKET, WAIT_FOR_DEVICE_CONNECT, RETRIEVE_MAC, SEND_MAC, RETRIEVE_CREDENTIALS };
-enum WLAN_COMMUNICATION_STATES {INIT_MESSAGE = 1, REPEAT_OFF, REQUEST_WIFI, CREATE_SOCKET_SERVER_WLAN, WAIT_FOR_WLAN_DEVICE, DEVICE_CONNECTED};
+	
+const char MODES_STRING[5][3] = {"SIN", "SQR", "TRN", "DC ", "OFF"};
 	
 /* RGB LED  */
 #define LED_DDR		DDRB
@@ -153,21 +150,6 @@ do                          \
 #define ADC_V true
 #define CMP_V false
 
-#define PARAM_FREQ	'F'
-#define PARAM_PHASE 'P'
-#define PARAM_TYPE	'T'
-#define PARAM_AMP	'A'
-#define PARAM_BIAS	'B'
-
-#define PARAM_CH0 '0'
-#define PARAM_CH1 '1'
-
-#define TYPE_SINE 'S'
-#define TYPE_SQUARE 'Q'
-#define TYPE_TRIANGLE 'T'
-#define TYPE_DC	'D'
-#define TYPE_OFF 'O'
-
 #define FG_DATA_LENGTH 32
 #define MAX_COMMAND_LENGTH 128
 #define FG_DATA_START_NUM 9
@@ -175,9 +157,6 @@ do                          \
 #define MAXIMUM_COMMAND_RETRIES 20
 #define TIMER_PERIOD 1 // In SEC
 #define TIMER_COMPARE_VALUE (F_CPU / 1024) * TIMER_PERIOD
-
-#define FIRMWARE_VERSION_A '2'
-#define FIRMWARE_VERSION_B '0'
 
 #define BRIGHTNESS 0
 #define CONTRAST 1
@@ -214,26 +193,18 @@ struct MAIN_STRUCTURE {
 struct STATUS_STRUCTURE {
 	uint8_t battery_voltage;
 	bool   ac_power_status;
-	bool socket_active;
 } STATUS;
 
-struct WIFI_STRUCTURE {
-	char SSID[MAX_WIFI_SSID_LENGTH];
-	char PASS[MAX_WIFI_PASS_LENGTH];
-	char device_MAC[MAC_STRING_LENGTH];
-	char encryption;
-} WIFI;
 
 struct LCD_PARAMETERS {
 	uint8_t brightness;
 	uint8_t contrast;
-	uint8_t volume;
 	} LCD;
 
 struct UI_STRINGS {
-	char frequency_A[8], frequency_B[8];
-	char amplitude_A[4], amplitude_B[4];
-	char bias_A[5], bias_B[5];
+	char frequency_A[7], frequency_B[7];
+	char amplitude_A[3], amplitude_B[3];
+	char bias_A[4], bias_B[4];
 	char type_A[3], type_B[3];
 } UI;
 
