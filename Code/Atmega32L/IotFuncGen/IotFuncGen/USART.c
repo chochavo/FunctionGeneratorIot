@@ -2,8 +2,8 @@
 #include "Headers\main.h"
 
 void Init_UART() {
-	UBRRH = (unsigned char) (3 >> 8);
-	UBRRL = (unsigned char) 3;
+	UBRRH = (uint8_t) (3 >> 8);
+	UBRRL = (uint8_t) 3;
 	UCSRB = (1 << TXEN);
 	UCSRC = (1 << URSEL) | (1 << USBS) | (3 << UCSZ0);
 }
@@ -19,4 +19,3 @@ void Logger(char *str) {
 		++str;
 	}
 }
-

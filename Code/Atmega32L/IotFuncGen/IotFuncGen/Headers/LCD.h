@@ -29,8 +29,8 @@
 // LCD module information
 #define LCD_LINE_1     0x00                    // start of line 1
 #define LCD_LINE_2     0x40                    // start of line 2
-#define LCD_LINE_3   0x14                  // start of line 3 (20x4)
-#define LCD_LINE_4    0x54                  // start of line 4 (20x4)
+#define LCD_LINE_3	   0x14                  // start of line 3 (20x4)
+#define LCD_LINE_4     0x54                  // start of line 4 (20x4)
 // LCD instructions
 #define lcd_Clear           0b00000001          // replace all characters with ASCII 'space'
 #define lcd_Home            0b00000010          // return cursor to first position on first line
@@ -41,15 +41,15 @@
 #define lcd_FunctionSet4bit 0b00101000          // 4-bit data, 2-line display, 5 x 7 font
 #define LCD_SET_CURSOR       0b10000000          // set cursor position
 
-void Init_LCD();
-void lcd_write_4(uint8_t);
-void lcd_write_instruction_4d(uint8_t);
-void lcd_write_character_4d(uint8_t);
-void lcd_write_string_4d(char *);
-void Init_LCD_4bit(void);
-void LCD_logo_display();
-void print_LCD_line(char *input_string, uint8_t line_number);
-void clear_LCD_line(unsigned char line);
-void clear_LCD();
-void print_LCD_char(uint8_t ch_in, uint8_t line, uint8_t position);
+void LCD_Init();
+void LCD_Write4Bit(uint8_t);
+void LCD_WriteInstruction4Bit(uint8_t);
+void LCD_WriteCharacter4Bit(uint8_t);
+void LCD_WriteString4Bit(char *);
+void LCD_Init4bit(void);
+void LCD_LogoDisplay();
+void LCD_PrintLine(char *input_string, uint8_t line_number);
+void LCD_ClearLine(uint8_t line);
+void LCD_Clear();
+void LCD_PrintChar(uint8_t ch_in, uint8_t line, uint8_t position);
 #endif

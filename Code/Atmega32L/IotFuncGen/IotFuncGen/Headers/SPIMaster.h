@@ -49,9 +49,8 @@
 #define nSHDN	(1 << 12)
 
 //PROTOTYPES
-void SPI_write_16bit(uint8_t address_in, uint8_t data_in, enum DEVICES device);
-void Init_SPI_AD9834(void);
-void Init_SPI_All(void);
-
+void SPI_Write16Bit(uint8_t address_in, uint8_t data_in, enum Device device);
+void SPI_InitAD9834(void);
+void SPI_InitAll(void);
 
 #endif /* SPIMASTER_H_ */

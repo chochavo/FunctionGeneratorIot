@@ -1,7 +1,8 @@
 #include "Headers\main.h"
 #include "Headers\SPIMaster.h"
+#include "Headers\USART.h"
 
-void SPI_write_16bit(uint8_t address_in, uint8_t data_in, enum DEVICES device) {
+void SPI_Write16Bit(uint8_t address_in, uint8_t data_in, enum Device device) {
 	switch(device) {
 		case DACA: SPI_CE_PORT &= ~DACA_NCE; break;
 		case DACB: SPI_CE_PORT &= ~DACB_NCE; break;
@@ -31,8 +32,7 @@ void SPI_write_16bit(uint8_t address_in, uint8_t data_in, enum DEVICES device) {
 	}
 }
 
-
-void Init_SPI_AD9834(void) {
+void SPI_InitAD9834(void) {
 	SPI_CE_PORT |= DACA_NCE | DACB_NCE | DACA_BIAS_NCE | DACB_BIAS_NCE | FG0_NCE | FG1_NCE;
 	LCD_POT_PORT |= POT_LCD_NCE;
 	SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR0)|(1<<CPOL);
@@ -40,10 +40,10 @@ void Init_SPI_AD9834(void) {
 	_delay_ms(10);
 }
 
-void Init_SPI_All(void) {
+void SPI_InitAll(void) {
 	SPI_CE_PORT |= DACA_NCE | DACB_NCE | DACA_BIAS_NCE | DACB_BIAS_NCE | FG0_NCE | FG1_NCE;
 	LCD_POT_PORT |= POT_LCD_NCE;
-	SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR0);
+	SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR0)|(1<<CPOL);
 	SPSR = (1<<SPI2X);
 	_delay_ms(10);
 }

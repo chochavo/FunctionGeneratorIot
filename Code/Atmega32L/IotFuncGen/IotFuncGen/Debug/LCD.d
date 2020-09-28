@@ -1,4 +1,4 @@
-USART.d USART.o: .././USART.c .././Headers\USART.h .././Headers\main.h \
+LCD.d LCD.o: .././LCD.c .././Headers/main.h \
  d:\apps\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\io.h \
  d:\apps\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\sfr_defs.h \
  d:\apps\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\inttypes.h \
@@ -22,11 +22,9 @@ USART.d USART.o: .././USART.c .././Headers\USART.h .././Headers\main.h \
  d:\apps\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\stdlib.h \
  d:\apps\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\wdt.h \
  d:\apps\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\eeprom.h \
- .././Headers\main.h
+ .././Headers/SPIMaster.h .././Headers/LCD.h .././Headers/main.h
 
-.././Headers\USART.h:
-
-.././Headers\main.h:
+.././Headers/main.h:
 
 d:\apps\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\io.h:
 
@@ -74,4 +72,8 @@ d:\apps\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\wdt.h
 
 d:\apps\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\eeprom.h:
 
-.././Headers\main.h:
+.././Headers/SPIMaster.h:
+
+.././Headers/LCD.h:
+
+.././Headers/main.h:
